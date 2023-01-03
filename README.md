@@ -35,7 +35,7 @@
 可选值 `text(文字)、json、xml`。
 
 ### redirect和link说明
-> 开启重定向(redirect)后，服务器会将获取到的链接进行重定向。如果获取链接失败则会返回错误信息，返回类型由你（传入的types参数）决定。
+> 开启重定向(redirect)后，服务器会将获取到的链接进行重定向。如果获取链接失败则会返回错误信息，返回的数据类型由你（传入的types参数）决定。
 
 请求示例（开启重定向和获取文件直链）：`lanzouyunapi.php?data=wzdc&redirect=true&link=true`
 
