@@ -1,4 +1,12 @@
 <?php
+/**
+ * @package lanzouyunapi
+ * @author xsbb666
+ * @version 1.0.0
+ * @Date 2023-1-3
+ * @link https://wzdc.tk
+ */
+header('Access-Control-Allow-Origin:*');
 if(!$_REQUEST["data"])
 exit(response(-4,"缺少参数",null));
 include('simple_html_dom.php');
