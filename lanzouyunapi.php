@@ -2,9 +2,9 @@
 /**
  * @package lanzouyunapi
  * @author xsbb666
- * @version 1.0.0
+ * @version 1.0.1
  * @Date 2023-1-3
- * @link https://wzdc.tk
+ * @link https://github.com/xsbb666/lanzouyunapi
  */
 header('Access-Control-Allow-Origin:*');
 if(!$_REQUEST["data"])
@@ -47,26 +47,26 @@ if($_REQUEST["mode"]=="moblie"){ //使用手机UA获取
     	$data2=GET("https://www.lanzoui.com//tp/".$id2[0],$headers);
     	$vr = '?'.explode("'",explode("'?",$data2)[1])[0];
         $html2 = str_get_html($data2);
-        $fileinfo=$html->find('meta[name=description]',0)->content;
-        preg_match('/(?<=\<title>).*?(?=\网盘<\/title>$)/',$html->find('title',0)->outertext,$filename);//获取文件名
-        $info["name"]=$filename[0]; 
-        preg_match('/(?<=\文件大小：).*?(?=\|)/',$fileinfo,$filesize);//获取文件大小
-        $info["size"]=$filesize[0]; 
-        preg_match('/(?<=\<\/span>).*?(?=\<span class="mt2">)/',$html->find('.mf',0)->innertext,$username);//获取分享者
-        $info["user"]=trim($username[0]); 
-        preg_match('/(?<=\|).*?(?=$)/',$fileinfo,$filedesc);//获取文件描述
-        $info["desc"]=$filedesc[0];
-    } else { //会员个性化
-        $info["name"]=$html->find('title',0)->innertext;
-        $fileinfo=$html->find('meta[name=description]',0)->content;
-         preg_match('/(?<=\文件大小：).*?(?=\|)/',$fileinfo,$filesize);//获取文件大小
-        $info["size"]=$filesize[0]; 
-        $info["user"]=$html->find('.user-name',0)->innertext; //获取分享者
-        preg_match('/(?<=\|).*?(?=$)/',$fileinfo,$filedesc);//获取文件描述
-        $info["desc"]=$filedesc[0];
-        $json['url']=$vr;
+	    $json['dom']='http'.explode("'",explode("'http",$data2)[1])[0];
+    } else  //会员个性化
 	    $json['dom']='http'.explode("'",explode("'http",$data)[1])[0];
+    
+    
+    $fileinfo=$html->find('meta[name=description]',0)->content;
+    if($html->find('.appname',0)->innertext)//获取文件名
+    $info["name"]=$html->find('.appname',0)->innertext;
+    else
+    $info["name"]=$html2->find('title',0)->innertext; 
+    preg_match('/(?<=\文件大小：).*?(?=\|)/',$fileinfo,$filesize);//获取文件大小
+    $info["size"]=$filesize[0]; 
+    if($html->find('.user-name',0)->innertext)//获取分享者
+    $info["user"]=$html->find('.user-name',0)->innertext;
+    else{
+    preg_match('/(?<=\<\/span>).*?(?=\<span class="mt2">)/',$html->find('.mf',0)->innertext,$username);
+    $info["user"]=trim($username[0]); 
     }
+    preg_match('/(?<=\|).*?(?=$)/',$fileinfo,$filedesc);//获取文件描述
+    $info["desc"]=$filedesc[0];
     
     if($vr=='?') {//有密码
     preg_match_all("~(.*?)_c_c~", $data2, $c);
@@ -77,10 +77,8 @@ if($_REQUEST["mode"]=="moblie"){ //使用手机UA获取
     exit(response(-2,"获取失败",null));
 	$json=json_decode(Post('https://www.lanzoui.com/ajaxm.php',array('action'=>'downprocess')+array('sign'=>$key)+array('p'=>$_REQUEST['pw']),$headers),true);//POST请求API获取下载地址
 	$json['dom']=$json['dom'].'/file/';
-    } else { //无密码
+    } else  //无密码
 	$json['url']=$vr;
-	$json['dom']='http'.explode("'",explode("'http",$data)[1])[0];
-    }
     
 	if($json['url']) {
 	    $shortUrl= $json['dom'].$json['url'];
@@ -111,7 +109,10 @@ if($_REQUEST["mode"]=="moblie"){ //使用手机UA获取
     $html=str_get_html($data);
     if(!$html)
     exit(response(-3,"获取失败",null));
-    $info["name"]=$html->find('title',0)->innertext;
+    if($html->find('.n_box_3fn',0)->innertext)//获取文件名
+    $info["name"]=$html->find('.n_box_3fn',0)->innertext;
+    else
+    $info["name"]=$html->find('div[style=font-size: 30px;text-align: center;padding: 56px 0px 20px 0px;]',0)->innertext;
     $fileinfo=$html->find('meta[name=description]',0)->content;
     preg_match('/(?<=\文件大小：).*?(?=\|)/',$fileinfo,$filesize);//获取文件大小
     $info["size"]=$filesize[0]; 
