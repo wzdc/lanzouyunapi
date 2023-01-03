@@ -270,3 +270,4 @@ function arrayToXml($arr,$dom=0,$item=0){
     } 
   return $dom->saveXML(); 
 }
+?>
