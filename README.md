@@ -3,7 +3,6 @@
 
 获取到的链接是临时的下载链接，请按需使用。
 
-包含项目：[PHP Simple HTML DOM Parser](https://sourceforge.net/projects/simplehtmldom/)
 
 ## 请求
 请求类型：`GET/POST`
