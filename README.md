@@ -59,6 +59,7 @@
 | size | 文件大小 | String |
 | user | 分享者 | String |
 | desc | 描述 | String |
+| time | 上传时间 | String |
 | url | 链接 | String |
 
 ### 状态码说明
