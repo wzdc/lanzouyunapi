@@ -2,8 +2,8 @@
 /**
  * @package lanzouyunapi
  * @author xsbb666
- * @version 1.0.1
- * @Date 2023-1-3
+ * @version 1.0.2
+ * @Date 2023-1-6
  * @link https://github.com/xsbb666/lanzouyunapi
  */
 header('Access-Control-Allow-Origin:*');
@@ -42,17 +42,18 @@ if($_REQUEST["mode"]=="moblie"){ //使用手机UA获取
     $vr = '?'.explode("'",explode("= '?",$data)[1])[0];
     if(!$data)
     exit(response(-3,"获取失败",null));
-    else if($vr=='?') { //普通页面
+    else if($vr=='?') { 
     	preg_match('/(?<=\'tp\/).*?(?=\';)/',$data,$id2);
     	$data2=GET("https://www.lanzoui.com//tp/".$id2[0],$headers);
     	$vr = '?'.explode("'",explode("'?",$data2)[1])[0];
         $html2 = str_get_html($data2);
 	    $json['dom']='http'.explode("'",explode("'http",$data2)[1])[0];
-    } else  //会员个性化
+    } else  
 	    $json['dom']='http'.explode("'",explode("'http",$data)[1])[0];
     
     
     $fileinfo=$html->find('meta[name=description]',0)->content;
+    $fileinfo2=$html->find('.mf',0)->innertext;
     if($html->find('.appname',0)->innertext)//获取文件名
     $info["name"]=$html->find('.appname',0)->innertext;
     else
@@ -62,15 +63,20 @@ if($_REQUEST["mode"]=="moblie"){ //使用手机UA获取
     if($html->find('.user-name',0)->innertext)//获取分享者
     $info["user"]=$html->find('.user-name',0)->innertext;
     else{
-    preg_match('/(?<=\<\/span>).*?(?=\<span class="mt2">)/',$html->find('.mf',0)->innertext,$username);
+    preg_match('/(?<=\<\/span>).*?(?=\<span class="mt2">)/',$fileinfo2,$username);
     $info["user"]=trim($username[0]); 
     }
+    preg_match('/(?<=\<span class="mt2"><\/span>).*?(?=\<span class="mt2">)/',$fileinfo2,$filetime); //获取上传时间
+    if($filetime[0])
+    $info["time"]=trim($filetime[0]);
+    else
+    $info["time"]=$html->find('.appinfotime',0)->innertext;
     preg_match('/(?<=\|).*?(?=$)/',$fileinfo,$filedesc);//获取文件描述
     $info["desc"]=$filedesc[0];
     
     if($vr=='?') {//有密码
     preg_match_all("~(.*?)_c_c~", $data2, $c);
-    $key=substr($a[0][0],strripos($c[0][0],"'")+1);
+    $key=substr($c[0][0],strripos($c[0][0],"'")+1);
     if(!$key&&$html->find('.off',0)->innertext)
     exit(response(-2,$html->find('.off',0)->plaintext,null));
     else if(!$key)
@@ -122,6 +128,13 @@ if($_REQUEST["mode"]=="moblie"){ //使用手机UA获取
     $info["user"]=$html->find('font',0)->innertext; 
     preg_match('/(?<=\|).*?(?=$)/',$fileinfo,$filedesc);//获取文件描述
     $info["desc"]=$filedesc[0];
+    preg_match('/(?<=\<span class="p7">上传时间：<\/span>).*?(?=\<br>)/',$data,$filetime);//获取上传时间
+    if($filetime[0])
+    $info["time"]=$filetime[0];
+    else if($html->find('.n_file_infos',1)->innertext)
+    $info["time"]=$html->find('.n_file_infos',0)->innertext;
+    else
+    $info["time"]=null;
     
     if($html->find('iframe',0)->src) { //无密码
         $data2=GET("https://www.lanzoui.com".$html->find('iframe',0)->src,null);
@@ -168,12 +181,19 @@ if($_REQUEST["mode"]=="moblie"){ //使用手机UA获取
 
 //GET获取跳转链接
 function restoreUrl($shortUrl) {
+$headers[]  =  "Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9";
+$headers[]  =  "Accept-Encoding: gzip, deflate, br";
+$headers[]  =  "Accept-Language: zh-CN,zh;q=0.9,zh-HK;q=0.8,zh-TW;q=0.7";
+$headers[]  =  "Cache-Control: max-age=0";
+$headers[]  =  "Connection: keep-alive";
+$headers[]  =  'sec-ch-ua: "Not?A_Brand";v="8", "Chromium";v="108", "Google Chrome";v="108"';
+
 $curl = curl_init();
 curl_setopt($curl, CURLOPT_URL, $shortUrl);
 curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
 curl_setopt($curl, CURLOPT_USERAGENT, 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:70.0) Gecko/20100101 Firefox/70.0');
 curl_setopt($curl, CURLOPT_COOKIE, 'down_ip=1');
-// curl_setopt($curl, CURLOPT_HTTPHEADER,$headers);
+curl_setopt($curl, CURLOPT_HTTPHEADER,$headers);
 curl_setopt($curl, CURLOPT_HEADER, true);
 curl_setopt($curl, CURLOPT_NOBODY, false);
 curl_setopt($curl, CURLOPT_TIMEOUT, 15);
