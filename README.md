@@ -13,8 +13,8 @@
 | mode | 否 | pc | [获取数据方式](#mode参数说明) |
 | data | 是 | | 蓝奏云链接或ID |
 | pw | 否 | | 密码 |
-| type | 否 | auto | 请求类型(可选值`auto、url、id`。) |
-| types | 否 | json | 返回的数据类型(可选值 `text、json、xml`。) |
+| type | 否 | auto | 请求类型(可选值: auto、url、id) |
+| types | 否 | json | 返回的数据类型(可选值: text、json、xml) |
 | redirect | 否 | false | 重定向 |
 | link | 否 | false | 获取文件直链 |
 
