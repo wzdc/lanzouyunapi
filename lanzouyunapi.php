@@ -1,9 +1,9 @@
 <?php
 /**
  * @package lanzouyunapi
- * @author xsbb666
- * @version 1.0.2
- * @Date 2023-1-6
+ * @author wzdc
+ * @version 1.0.3
+ * @Date 2023-3-20
  * @link https://github.com/xsbb666/lanzouyunapi
  */
 header('Access-Control-Allow-Origin:*');
@@ -51,7 +51,6 @@ if($_REQUEST["mode"]=="moblie"){ //使用手机UA获取
     } else  
 	    $json['dom']='http'.explode("'",explode("'http",$data)[1])[0];
     
-    
     $fileinfo=$html->find('meta[name=description]',0)->content;
     $fileinfo2=$html->find('.mf',0)->innertext;
     if($html->find('.appname',0)->innertext)//获取文件名
@@ -73,10 +72,9 @@ if($_REQUEST["mode"]=="moblie"){ //使用手机UA获取
     $info["time"]=$html->find('.appinfotime',0)->innertext;
     preg_match('/(?<=\|).*?(?=$)/',$fileinfo,$filedesc);//获取文件描述
     $info["desc"]=$filedesc[0];
-    
     if($vr=='?') {//有密码
-    preg_match_all("~(.*?)_c_c~", $data2, $c);
-    $key=substr($c[0][0],strripos($c[0][0],"'")+1);
+    preg_match_all("~['](.+_c)~", $data2, $c);
+    $key=$c[1][0];
     if(!$key&&$html->find('.off',0)->innertext)
     exit(response(-2,$html->find('.off',0)->plaintext,null));
     else if(!$key)
@@ -88,19 +86,19 @@ if($_REQUEST["mode"]=="moblie"){ //使用手机UA获取
     
 	if($json['url']) {
 	    $shortUrl= $json['dom'].$json['url'];
-	    if($_REQUEST['link']=='true') {
+	    if($_REQUEST['link']) {
 		    $orinalUrl = restoreUrl($shortUrl);
 		    if(!$orinalUrl) {
 		        $info["url"]=$shortUrl;
 		        response(1,"获取直链失败",$info);//链接还原失败
-		    } else if($_REQUEST['redirect']=='true') 
+		    } else if($_REQUEST['redirect']) 
 		    header("Location: ".$orinalUrl);
 		    else {
 		        $info["url"]=$orinalUrl;
 		        response(0,"成功",$info);
 		    }
 	    } else {
-		    if($_REQUEST['redirect']=='true') 
+		    if($_REQUEST['redirect']) 
 		    header("Location: $shortUrl");
 		    $info["url"]=$shortUrl;
 		    response(0,"成功",$info);
@@ -156,19 +154,19 @@ if($_REQUEST["mode"]=="moblie"){ //使用手机UA获取
 	    $shortUrl= $json['dom'].'/file/'.$json['url'];
 	    if($json["inf"])
 	    $info["name"]=$json["inf"];
-	    if($_REQUEST['link']=='true') {
+	    if($_REQUEST['link']) {
 		    $orinalUrl = restoreUrl($shortUrl);
 		    if(!$orinalUrl) {
 		        $info["url"]=$shortUrl;
 		        response(1,"获取直链失败",$info);//链接还原失败
-		    } else if($_REQUEST['redirect']=='true') 
+		    } else if($_REQUEST['redirect']) 
 		    header("Location: ".$orinalUrl);
 		    else {
 		        $info["url"]=$orinalUrl;
 		        response(0,"成功",$info);
 		    }
 	    } else {
-		    if($_REQUEST['redirect']=='true') 
+		    if($_REQUEST['redirect']) 
 		    header("Location: $shortUrl");
 		    $info["url"]=$shortUrl;
 		    response(0,"成功",$info);
@@ -232,20 +230,16 @@ function Post($url,$curlPost,$headers) {
 function response($code,$msg,$data)
 {
     $res=array("code"=>$code,"msg"=>$msg,"data"=>$data);
-    if($_REQUEST["types"]=="text")
-    {
+    if($_REQUEST["types"]=="text"){
         header('Content-Type:text/plain;charset=UTF-8');
         if($code=='0')
         echo $data["url"];
         else
         echo $msg;
-    }
-    else if($_REQUEST["types"]=="xml")
-    {
+    } else if($_REQUEST["types"]=="xml") {
         header('Content-Type: application/xml');
         echo arrayToXml(array("code"=>$code,"msg"=>$msg,$data));
-    }
-    else{
+    } else {
         header('Content-Type: application/json');
         echo json_encode($res,JSON_UNESCAPED_UNICODE);
     }
