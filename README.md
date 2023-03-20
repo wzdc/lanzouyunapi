@@ -1,40 +1,33 @@
-## 蓝奏云解析API
+# 蓝奏云解析API
 蓝奏云解析，支持获取：文件名、分享者、文件大小、描述、文件链接、文件直链
 
 获取到的链接是临时的下载链接，请按需使用。
 
 
-## 请求
+# 请求
 请求类型：`GET/POST`
 
 请求示例：`lanzouyunapi.php?data=wzdc`
 | 参数 | 必填 | 默认 | 说明 |
 | -- | -- | -- | -- |
-| mode | 否 | pc | 获取数据方式 |
+| mode | 否 | pc | [获取数据方式](#mode参数说明) |
 | data | 是 | | 蓝奏云链接或ID |
 | pw | 否 | | 密码 |
-| type | 否 | auto | 请求类型 |
-| types | 否 | json | 返回的数据类型 |
+| type | 否 | auto | 请求类型(可选值`auto、url、id`。) |
+| types | 否 | json | 返回的数据类型(可选值 `text、json、xml`。) |
 | redirect | 否 | false | 重定向 |
 | link | 否 | false | 获取文件直链 |
 
 
-### mode参数说明
-> 当电脑UA获取不了文件后可以尝试使用手机UA获取
+## mode参数说明
+> 做两个UA的不同获取方式是因为如果电脑UA获取失败了可以改用手机UA获取（算是备用方案了），但目前我还没有做如果电脑UA获取失败自动使用手机UA获取。
 
 | 参数 | 说明 |
 | -- | -- |
 | pc | 使用电脑UA获取数据 |
 | moblie | 使用手机UA获取数据 |
 
-
-### type参数说明
-可选值`auto(自动)、url、id`。
-
-### types参数说明
-可选值 `text(文字)、json、xml`。
-
-### redirect和link说明
+## redirect和link说明
 > 开启重定向(redirect)后，服务器会将获取到的链接进行重定向。如果获取链接失败则会返回错误信息，返回的数据类型由你（传入的types参数）决定。
 
 请求示例（开启重定向和获取文件直链）：`lanzouyunapi.php?data=wzdc&redirect=true&link=true`
@@ -44,7 +37,7 @@
 | true | 开启 |
 | false | 关闭 |
 
-## 返回
+# 返回
 
 | 参数 | 说明 | 数据类型 |
 | -- | -- | -- |
@@ -52,7 +45,7 @@
 | msg | 信息 | String |
 | data | 文件信息 | object |
 
-### 文件信息
+## 文件信息
 | 参数 | 说明 | 数据类型 |
 | -- | -- | -- |
 | name | 文件名 | String |
@@ -62,7 +55,7 @@
 | time | 上传时间 | String |
 | url | 链接 | String |
 
-### 状态码说明
+## 状态码说明
 | code | 说明 | msg |
 | -- | -- | -- |
 | 1 | 已经成功获取链接，但获取直链失败 | 获取直链失败 |
