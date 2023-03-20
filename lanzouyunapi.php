@@ -4,7 +4,7 @@
  * @author wzdc
  * @version 1.0.3
  * @Date 2023-3-20
- * @link https://github.com/xsbb666/lanzouyunapi
+ * @link https://github.com/wzdc/lanzouyunapi
  */
 header('Access-Control-Allow-Origin:*');
 if(!$_REQUEST["data"])
