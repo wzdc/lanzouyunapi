@@ -10,7 +10,7 @@
 请求示例：`lanzouyunapi.php?data=wzdc`
 | 参数 | 必填 | 默认 | 说明 |
 | -- | -- | -- | -- |
-| mode | 否 | pc | [获取数据方式](#mode参数说明) |
+| mode | 否 | pc | 获取数据方式 |
 | data | 是 | | 蓝奏云链接或ID |
 | pw | 否 | | 密码 |
 | type | 否 | auto | 请求类型(可选值: auto、url、id) |
