@@ -15,8 +15,8 @@
 | pw | 否 | | 密码 |
 | type | 否 | auto | 请求类型(可选值: auto、url、id) |
 | types | 否 | json | 返回的数据类型(可选值: text、json、xml) |
-| redirect | 否 | false | 重定向 |
-| link | 否 | false | 获取文件直链 |
+| redirect | 否 | 0 | 重定向 |
+| link | 否 | 0 | 获取文件直链 |
 
 
 ## mode参数说明
@@ -34,8 +34,8 @@
 
 | 参数 | 说明 |
 | -- | -- |
-| 1 (旧版请用true) | 开启 |
-| 0 (旧版请用false) | 关闭 |
+| 1  | 开启 |
+| 0  | 关闭 |
 
 # 返回
 
