@@ -14,7 +14,7 @@
 6. 支持多种数据格式响应
 
 # 依赖
-## 文件
+## 文件（无需下载，仓库提供）
 1. simple_html_dom.php 
 2. lanzouyunapiconfig.php 
 
