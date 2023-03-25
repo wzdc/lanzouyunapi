@@ -15,7 +15,7 @@
 
 # 依赖
 ## 文件
-1. (simple_html_dom.php)[https://simplehtmldom.sourceforge.io/docs/1.9/index.html#download] 
+1. [simple_html_dom.php](https://simplehtmldom.sourceforge.io/docs/1.9/index.html#download)
 2. lanzouyunapiconfig.php 
 
 ## 扩展
