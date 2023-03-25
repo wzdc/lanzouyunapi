@@ -2,266 +2,158 @@
 /**
  * @package lanzouyunapi
  * @author wzdc
- * @version 1.0.3
- * @Date 2023-3-20
+ * @version 1.0.4
+ * @Date 2023-3-25
  * @link https://github.com/wzdc/lanzouyunapi
  */
-header('Access-Control-Allow-Origin:*');
-if(!$_REQUEST["data"])
-exit(response(-4,"缺少参数",null));
-include('simple_html_dom.php');
-if($_REQUEST["type"]=="url"){
-    if(explode('/',$_REQUEST['data'])[4]){
-         $id=explode('/',$_REQUEST['data'])[4];
-         $url='https://www.lanzoui.com/'.$id;
-    } else if(explode('/',$_REQUEST['data'])[3]) {
-         $id=explode('/',$_REQUEST['data'])[3];
-         $url='https://www.lanzoui.com/'.$id;
+ 
+//error_reporting(E_ALL & ~(E_NOTICE | E_WARNING)); // 不显示 Notice 和 WARNING 错误
+require('simple_html_dom.php'); //HTML解析
+include "lanzouyunapiconfig.php"; //配置文件
+header('Access-Control-Allow-Origin:*'); //允许跨站请求
+$id = preg_match("/\.com\/(?:tp\/)?(.*)/",$_REQUEST["data"] ?? "",$id) ? $id[1] : $_REQUEST["data"] ?? ""; //ID或链接
+if(!$id) exit(response(-4,"缺少参数",null));
+$pw = $_REQUEST["pw"] ?? ""; //密码
+$mode = $_REQUEST["mode"] ?? ""; //获取方式
+$link = $_REQUEST["link"] ?? ""; //直链
+$auto = $_REQUEST["auto"] ?? ""; //自动切换获取方式
+$types = $_REQUEST["types"] ?? ""; //需要响应的数据类型
+$redirect = $_REQUEST["redirect"] ?? ""; //重定向
+
+//读取缓存
+if($cacheconfig["cache"]&&$data3=apcu_fetch($id)){
+    global $link;
+    
+    if(!isset($data3["time"])&&isset($data3["link"])&&preg_match("/(?!(0000))\d{4}\/(?:0[1-9]|1[0-2])\/(?:0[1-9]|[12]\d|3[01])/",$data3["link"],$time)) //截取上传时间
+	    $data3["time"]=str_ireplace("/","-",$time[0]);
+    
+    if($link){ //获取缓存的直链
+        if($cacheconfig["verify"]&&!preg_match('/200/',@get_headers($data3["link"])[0])){ //验证链接是否有效
+            $data3["link"]=request($data3["url"])["info"]["redirect_url"]; //无效尝试重新获取
+            apcu_store($id,$data3,$cacheconfig["time"]);
+        }
+        if(isset($data3["link"]))
+            exit(response(2,"来自缓存",$data3));
     }
-} else if($_REQUEST["type"]=="id"){
-    $id=$_REQUEST["data"];
-    $url='https://www.lanzoui.com/'.$id;
-} else {
-    if(explode('/',$_REQUEST['data'])[4]){
-         $id=explode('/',$_REQUEST['data'])[4];
-         $url='https://www.lanzoui.com/'.$id;
-    } else if(explode('/',$_REQUEST['data'])[3]) {
-         $id=explode('/',$_REQUEST['data'])[3];
-         $url='https://www.lanzoui.com/'.$id;
-    } else {
-         $id=$_REQUEST['data'];
-         $url="https://www.lanzoui.com/".$id;
+    else if($data3["url"]){ //获取缓存的链接
+        if($cacheconfig["verify"]&&$link2=request($data3["url"])["info"]["redirect_url"]){
+            $data3["link"]=$link2;
+            apcu_store($id,$data3,$cacheconfig["time"]);
+        }
+        exit(response(2,"来自缓存",$data3));
     }
 }
 
-$headers[]  =  "Referer: https://www.lanzoui.com/";
-if($_REQUEST["mode"]=="moblie"){ //使用手机UA获取
-    $headers[]  =  "User-Agent:Mozilla/5.0 (iPad; U; CPU OS 6_0 like Mac OS X; zh-CN; iPad2)";
-    $data=GET($url,$headers);
+$mode == "moblie" ? moblie() : pc();
+
+//使用手机UA获取
+function moblie(){ 
+    global $id,$pw;
+    $headers[] = "User-Agent: Mozilla/5.0 (iPad; U; CPU OS 6_0 like Mac OS X; zh-CN; iPad2)";
+    $data=request("https://www.lanzoui.com/$id","GET",null,$headers,"data");
     $html=str_get_html($data);
-    $vr = '?'.explode("'",explode("= '?",$data)[1])[0];
-    if(!$data)
-    exit(response(-3,"获取失败",null));
-    else if($vr=='?') { 
-    	preg_match('/(?<=\'tp\/).*?(?=\';)/',$data,$id2);
-    	$data2=GET("https://www.lanzoui.com//tp/".$id2[0],$headers);
-    	$vr = '?'.explode("'",explode("'?",$data2)[1])[0];
+    
+    if(!$html) exit(response(-3,"获取失败",null)); //HTML解析失败
+    else if(!preg_match("/(?<=')\?.+(?=')/",$data,$vr)) { 
+    	$id2 = preg_match('/(?<=\'tp\/).*?(?=\';)/',$data,$id2) ? $id2[0] : "";
+    	$data2=request("https://www.lanzoui.com/tp/$id2","GET",null,$headers,"data");
+        $vr = preg_match("/(?<=')\?.+(?=')/",$data2,$vr) ? $vr[0] : null;
         $html2 = str_get_html($data2);
-	    $json['dom']='http'.explode("'",explode("'http",$data2)[1])[0];
-    } else  
-	    $json['dom']='http'.explode("'",explode("'http",$data)[1])[0];
-    
-    $fileinfo=$html->find('meta[name=description]',0)->content;
-    $fileinfo2=$html->find('.mf',0)->innertext;
-    if($html->find('.appname',0)->innertext)//获取文件名
-    $info["name"]=$html->find('.appname',0)->innertext;
-    else
-    $info["name"]=$html2->find('title',0)->innertext; 
-    preg_match('/(?<=\文件大小：).*?(?=\|)/',$fileinfo,$filesize);//获取文件大小
-    $info["size"]=$filesize[0]; 
-    if($html->find('.user-name',0)->innertext)//获取分享者
-    $info["user"]=$html->find('.user-name',0)->innertext;
-    else{
-    preg_match('/(?<=\<\/span>).*?(?=\<span class="mt2">)/',$fileinfo2,$username);
-    $info["user"]=trim($username[0]); 
+    } else { 
+        $vr = $vr[0];
     }
-    preg_match('/(?<=\<span class="mt2"><\/span>).*?(?=\<span class="mt2">)/',$fileinfo2,$filetime); //获取上传时间
-    if($filetime[0])
-    $info["time"]=trim($filetime[0]);
-    else
-    $info["time"]=$html->find('.appinfotime',0)->innertext;
-    preg_match('/(?<=\|).*?(?=$)/',$fileinfo,$filedesc);//获取文件描述
-    $info["desc"]=$filedesc[0];
-    if($vr=='?') {//有密码
-    preg_match_all("~['](.+_c)~", $data2, $c);
-    $key=$c[1][0];
-    if(!$key&&$html->find('.off',0)->innertext)
-    exit(response(-2,$html->find('.off',0)->plaintext,null));
-    else if(!$key)
-    exit(response(-2,"获取失败",null));
-	$json=json_decode(Post('https://www.lanzoui.com/ajaxm.php',array('action'=>'downprocess')+array('sign'=>$key)+array('p'=>$_REQUEST['pw']),$headers),true);//POST请求API获取下载地址
-	$json['dom']=$json['dom'].'/file/';
-    } else  //无密码
-	$json['url']=$vr;
     
-	if($json['url']) {
-	    $shortUrl= $json['dom'].$json['url'];
-	    if($_REQUEST['link']) {
-		    $orinalUrl = restoreUrl($shortUrl);
-		    if(!$orinalUrl) {
-		        $info["url"]=$shortUrl;
-		        response(1,"获取直链失败",$info);//链接还原失败
-		    } else if($_REQUEST['redirect']) 
-		    header("Location: ".$orinalUrl);
-		    else {
-		        $info["url"]=$orinalUrl;
-		        response(0,"成功",$info);
-		    }
-	    } else {
-		    if($_REQUEST['redirect']) 
-		    header("Location: $shortUrl");
-		    $info["url"]=$shortUrl;
-		    response(0,"成功",$info);
-	    }
-    } else {
-    $info["url"]=null;
-	response(-1,$json['inf'],$info); //蓝奏云返回的错误信息
-	}
-} else { //使用电脑UA获取
-    $headers[]  =  "User-Agent:Mozilla/5.0 (Windows NT 6.1; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/87.0.4280.88 Safari/537.36";
-    $data=GET($url,$headers);
+    $json["dom"]=preg_match("/(?<=')https?:\/\/.+(?=')/",$data2 ?? $data,$url) ? $url[0] : null; //获取链接
+    $fileinfo=$html->find('meta[name=description]',0)->content ?? "";
+    $fileinfo2=$html->find('.mf',0)->innertext ?? "";
+    $info["name"]=$html->find('.appname',0)->innertext ?? (isset($html2) ? $html2->find('title',0)->innertext : ""); //获取文件名
+    $info["size"]=preg_match('/(?<=\文件大小：).*?(?=\|)/',$fileinfo,$filesize) ? $filesize[0] : null; //获取文件大小
+    $info["user"]=$html->find('.user-name',0)->innertext ?? (preg_match('/(?<=\<\/span>).*?(?=\<span class="mt2">)/',$fileinfo2,$username) ? trim($username[0]) : null); //获取分享者
+    $info["time"]=preg_match('/(?<=\<span class="mt2"><\/span>).*?(?=\<span class="mt2">)/',$fileinfo2,$filetime) ? trim($filetime[0]) : $html->find('.appinfotime',0)->innertext ?? null; //获取上传时间
+    $info["desc"]=preg_match('/(?<=\|).*?(?=$)/',$fileinfo,$filedesc) ? $filedesc[0] : null; //获取文件描
+    
+    if($vr) 
+    $json['url']=$vr; //无密码
+    else {  //有密码（或遇到其他错误）
+    if(!preg_match("/(?<=').+_c/", $data2, $key))
+    exit(response(-2,$html->find('.off',0)->plaintext ?? "获取失败",null)); //错误
+	$json=json_decode(request('https://www.lanzoui.com/ajaxm.php', 'POST', array('action'=>'downprocess', 'sign'=>$key[0], 'p'=>$pw), $headers,"data"),true); //POST请求API获取下载地址
+	$json['dom'].='/file/';
+    }
+	e($json,$info);
+}
+
+//使用电脑UA获取
+function pc(){ 
+    global $id,$pw;
+    $headers[] = "User-Agent:Mozilla/5.0 (Windows NT 6.1; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/87.0.4280.88 Safari/537.36";
+    $data=request("https://www.lanzoui.com/$id","GET",null,$headers,"data");
     $html=str_get_html($data);
-    if(!$html)
-    exit(response(-3,"获取失败",null));
-    if($html->find('.n_box_3fn',0)->innertext)//获取文件名
-    $info["name"]=$html->find('.n_box_3fn',0)->innertext;
-    else
-    $info["name"]=$html->find('div[style=font-size: 30px;text-align: center;padding: 56px 0px 20px 0px;]',0)->innertext;
-    $fileinfo=$html->find('meta[name=description]',0)->content;
-    preg_match('/(?<=\文件大小：).*?(?=\|)/',$fileinfo,$filesize);//获取文件大小
-    $info["size"]=$filesize[0]; 
-    if($html->find('.user-name',0)->innertext)//获取分享者
-    $info["user"]=$html->find('.user-name',0)->innertext; 
-    else
-    $info["user"]=$html->find('font',0)->innertext; 
-    preg_match('/(?<=\|).*?(?=$)/',$fileinfo,$filedesc);//获取文件描述
-    $info["desc"]=$filedesc[0];
-    preg_match('/(?<=\<span class="p7">上传时间：<\/span>).*?(?=\<br>)/',$data,$filetime);//获取上传时间
-    if($filetime[0])
-    $info["time"]=$filetime[0];
-    else if($html->find('.n_file_infos',1)->innertext)
-    $info["time"]=$html->find('.n_file_infos',0)->innertext;
-    else
-    $info["time"]=null;
+    if(!$html) exit(response(-3,"获取失败",null)); //HTML解析失败
     
-    if($html->find('iframe',0)->src) { //无密码
-        $data2=GET("https://www.lanzoui.com".$html->find('iframe',0)->src,null);
-        preg_match_all("~sign':'(.*?)'~", $data2, $key);
-        preg_match_all("~ws_sign = '(.*?)';~", $data2, $a);
-        preg_match_all("~wsk_sign = '(.*?)';~", $data2, $b);
-        $key=$key[1][0];
+    $fileinfo=$html->find('meta[name=description]',0)->content ?? "";
+    $info["name"]=$html->find('.n_box_3fn',0)->innertext ?? $html->find('div[style=font-size: 30px;text-align: center;padding: 56px 0px 20px 0px;]',0)->innertext ?? null; //获取文件名
+    $info["size"]=preg_match('/(?<=\文件大小：).*?(?=\|)/',$fileinfo,$filesize) ? $filesize[0] : null;  //获取文件大小 
+    $info["user"]=$html->find('.user-name',0)->innertext ?? $html->find('font',0)->innertext ?? null; //获取分享者
+    $info["time"]=preg_match('/(?<=\<span class="p7">上传时间：<\/span>).*?(?=\<br>)/',$data,$filetime) ? $filetime[0] : ($html->find('.n_file_infos',1)->innertext ?? null ? $html->find('.n_file_infos',0)->innertext : null); //获取上传时间
+    $info["desc"]=preg_match('/(?<=\|).*?(?=$)/',$fileinfo,$filedesc) ? $filedesc[0] : null; //获取文件描述
+    
+    if($src=$html->find('iframe',0)->src ?? null) { //无密码
+        $data2=request("https://www.lanzoui.com$src")["data"];
+        preg_match("/(?<=sign':').+?(?=')/", $data2, $key);
+        preg_match("/(?<=ws_sign = ').*?(?=')/", $data2, $a);
+        preg_match("/(?<=wsk_sign = ').*?(?=')/", $data2, $b);
     } else { //有密码
-        preg_match_all("~action=(.*?)&sign=(.*?)&p='\+(.*?),~", $data, $key);
-        $key=$key[2][1];
+        preg_match("/(?<=&sign=).+_c/", $data, $key);
+    }
+    if(!isset($key[0]))
+    exit(response(-2,$html->find('.off',0)->plaintext ?? "获取失败",null)); //错误
+	$json=json_decode(request('https://www.lanzoui.com/ajaxm.php',"post",array('action' => 'downprocess', 'sign' => $key[0], 'p' => $pw, 'websign' => $a[0]??"", 'websignkey' => $b[0]??""),$headers,"data"),true); //POST请求API获取下载地址
+	$json["dom"].='/file/';
+	e($json,$info);
+}
+
+//将获取的数据做最后的处理
+function response($code,$msg,$data){
+    global $id,$cacheconfig,$auto,$link,$redirect,$types,$mode;
+    
+    //自动切换
+    if($auto&&$code!=4&&!$data["url"]){
+        $auto=null;
+        $mode == "moblie" ? pc() : moblie();
+        exit;
     }
     
-    if(!$key&&$html->find('.off',0)->innertext)
-    exit(response(-2,$html->find('.off',0)->plaintext,null));
-    else if(!$key)
-    exit(response(-2,"获取失败",null));
-	$json=json_decode(Post('https://www.lanzoui.com/ajaxm.php',array('action'=>'downprocess')+array('sign'=>$key)+array('p'=>$_REQUEST['pw'])+array('websign'=>$a[1][0])+array('websignkey'=>$b[1][0]),$headers),true);//POST请求API获取下载地址
-	if($json['url']) {
-	    $shortUrl= $json['dom'].'/file/'.$json['url'];
-	    if($json["inf"])
-	    $info["name"]=$json["inf"];
-	    if($_REQUEST['link']) {
-		    $orinalUrl = restoreUrl($shortUrl);
-		    if(!$orinalUrl) {
-		        $info["url"]=$shortUrl;
-		        response(1,"获取直链失败",$info);//链接还原失败
-		    } else if($_REQUEST['redirect']) 
-		    header("Location: ".$orinalUrl);
-		    else {
-		        $info["url"]=$orinalUrl;
-		        response(0,"成功",$info);
-		    }
-	    } else {
-		    if($_REQUEST['redirect']) 
-		    header("Location: $shortUrl");
-		    $info["url"]=$shortUrl;
-		    response(0,"成功",$info);
-	    }
-    } else {
-    $info["url"]=null;
-	response(-1,$json['inf'],$info); //蓝奏云返回的错误信息
-	}
-}
-
-//GET获取跳转链接
-function restoreUrl($shortUrl) {
-$headers[]  =  "Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9";
-$headers[]  =  "Accept-Encoding: gzip, deflate, br";
-$headers[]  =  "Accept-Language: zh-CN,zh;q=0.9,zh-HK;q=0.8,zh-TW;q=0.7";
-$headers[]  =  "Cache-Control: max-age=0";
-$headers[]  =  "Connection: keep-alive";
-$headers[]  =  'sec-ch-ua: "Not?A_Brand";v="8", "Chromium";v="108", "Google Chrome";v="108"';
-
-$curl = curl_init();
-curl_setopt($curl, CURLOPT_URL, $shortUrl);
-curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
-curl_setopt($curl, CURLOPT_USERAGENT, 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:70.0) Gecko/20100101 Firefox/70.0');
-curl_setopt($curl, CURLOPT_COOKIE, 'down_ip=1');
-curl_setopt($curl, CURLOPT_HTTPHEADER,$headers);
-curl_setopt($curl, CURLOPT_HEADER, true);
-curl_setopt($curl, CURLOPT_NOBODY, false);
-curl_setopt($curl, CURLOPT_TIMEOUT, 15);
-curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, false);
-curl_setopt($curl, CURLOPT_SSL_VERIFYHOST, 2);
-curl_setopt($curl, CURLOPT_ENCODING, 'gzip');
-$data = curl_exec($curl);
-$curlInfo = curl_getinfo($curl);
-curl_close($curl);
-if($curlInfo['http_code'] == 301 || $curlInfo['http_code'] == 302) {
-return $curlInfo['redirect_url'];
-}
-return '';
-}
-
-//Post
-function Post($url,$curlPost,$headers) {
-        $curlPost=http_build_query($curlPost);
-        $curl = curl_init ();
-        curl_setopt($curl,CURLOPT_URL,$url);
-        curl_setopt($curl,CURLOPT_HEADER,false);
-        if($headers)
-        curl_setopt($curl,CURLOPT_HTTPHEADER,$headers);
-        curl_setopt($curl,CURLOPT_RETURNTRANSFER,true);
-        curl_setopt($curl,CURLOPT_NOBODY,true);
-        curl_setopt($curl,CURLOPT_SSL_VERIFYPEER, false);
-        curl_setopt($curl,CURLOPT_SSL_VERIFYHOST, 2);
-        curl_setopt($curl,CURLOPT_POST,true);
-        curl_setopt($curl,CURLOPT_POSTFIELDS,$curlPost);
-        $return_str = curl_exec ($curl);
-        curl_close ( $curl );
-        return $return_str;
-}
-
-//返回数据 
-function response($code,$msg,$data)
-{
+    //写入缓存
+    if($cacheconfig["cache"]&&($code==0||$code==1))
+    apcu_store($id,$data,$cacheconfig["time"]);
+    
+    //直链
+    if($link&&($code==0||$code==2)) 
+    $data["url"]=$data["link"];
+    unset($data["link"]);
+    
+    //重定向
+    if($redirect&&$code==0) 
+	header("Location: ".$data["url"]);
+    
+    //响应数据
+    //asort($data); //数组排序
     $res=array("code"=>$code,"msg"=>$msg,"data"=>$data);
-    if($_REQUEST["types"]=="text"){
-        header('Content-Type:text/plain;charset=UTF-8');
-        if($code=='0')
-        echo $data["url"];
-        else
-        echo $msg;
-    } else if($_REQUEST["types"]=="xml") {
-        header('Content-Type: application/xml');
-        echo arrayToXml(array("code"=>$code,"msg"=>$msg,$data));
-    } else {
-        header('Content-Type: application/json');
-        echo json_encode($res,JSON_UNESCAPED_UNICODE);
+    switch ($types) {
+        case 'text':
+            header('Content-Type:text/plain;charset=UTF-8');
+            echo $code==0 ? $data["url"] : $msg;
+            break;
+        case 'xml':
+            header('Content-Type: application/xml');
+            echo arrayToXml($res);
+            break;
+        default:
+            header('Content-Type: application/json');
+            echo json_encode($res,JSON_UNESCAPED_UNICODE);
+            break;
     }
-}
-
-//GET 
-function GET($url,$headers)
-{
-    $curl = curl_init();
-    curl_setopt($curl, CURLOPT_URL,$url);
-    curl_setopt($curl, CURLOPT_HEADER,0);
-    curl_setopt($curl,CURLOPT_RETURNTRANSFER,true);
-    if($headers)
-    curl_setopt($curl,CURLOPT_HTTPHEADER,$headers);
-    curl_setopt($curl,CURLOPT_RETURNTRANSFER,true);
-    curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, false);
-    curl_setopt($curl, CURLOPT_SSL_VERIFYHOST, 2);
-    curl_setopt($curl,CURLOPT_NOBODY,0);
-    curl_setopt($curl, CURLOPT_RETURNTRANSFER, 1);
-    $data = curl_exec($curl);
-    curl_close($curl);
-    return $data;
 }
 
 //XML
@@ -277,12 +169,70 @@ function arrayToXml($arr,$dom=0,$item=0){
         $itemx = $dom->createElement(is_string($key)?$key:"item"); 
         $item->appendChild($itemx); 
         if (!is_array($val)){ 
-        $text = $dom->createTextNode($val); 
-        $itemx->appendChild($text); 
+            $text = $dom->createTextNode($val); 
+            $itemx->appendChild($text); 
         } else { 
-        arrayToXml($val,$dom,$itemx); 
+            arrayToXml($val,$dom,$itemx); 
         } 
     } 
-  return $dom->saveXML(); 
+    return $dom->saveXML(); 
+}
+
+//处理蓝奏云链接
+function e($json,$info){
+	global $link;
+    if($json['url']&&$json["dom"]) {
+	    $info["url"]=$json['dom'].$json['url']; //拼接链接
+	    if(isset($json["inf"])&&$json["inf"])$info["name"]=$json["inf"]; //文件名
+	    if($link) {
+		    $info["link"]=request($info["url"])["info"]["redirect_url"]; //获取直链
+		    if(!$info["link"])
+		        response(1,"获取直链失败",$info); //链接获取失败
+		     else {
+		        if(!$info["time"]&&preg_match("/(?!(0000))\d{4}\/(?:0[1-9]|1[0-2])\/(?:0[1-9]|[12]\d|3[01])/",$info["link"],$time)) //截取上传时间
+		            $info["time"]=str_ireplace("/","-",$time[0]);
+		        response(0,"成功",$info);
+		    }
+	    } else response(0,"成功",$info);
+    } else {
+        $info["url"]=null;
+	    response(-1,$json['inf']??"获取失败",$info); //蓝奏云返回的错误信息
+	}
+}
+
+//请求
+function request($url, $method = 'GET', $postdata = array(), $headers = array(),$responsetype = "all") {
+    
+    $headers[]  =  "Referer: https://www.lanzoui.com/";
+    $headers[]  =  "Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9";
+    $headers[]  =  "Accept-Encoding: gzip, deflate, br";
+    $headers[]  =  "Accept-Language: zh-CN,zh;q=0.9,zh-HK;q=0.8,zh-TW;q=0.7";
+    $headers[]  =  "Cache-Control: max-age=0";
+    $headers[]  =  "Connection: keep-alive";
+    $headers[]  =  'sec-ch-ua: "Not?A_Brand";v="8", "Chromium";v="108", "Google Chrome";v="108"';
+    
+    $curl = curl_init();
+    curl_setopt($curl, CURLOPT_URL, $url); //设置请求 URL
+    curl_setopt($curl, CURLOPT_ENCODING, 'gzip'); //自动解压缩
+    // 设置请求方式
+    if ( strtoupper($method) == 'POST') { 
+        curl_setopt($curl, CURLOPT_POST, true);
+        curl_setopt($curl, CURLOPT_POSTFIELDS, http_build_query($postdata));
+    } else {
+        curl_setopt($curl, CURLOPT_HTTPGET, true);
+    }
+    curl_setopt($curl, CURLOPT_HTTPHEADER, $headers); // 设置请求头信息
+    curl_setopt($curl, CURLOPT_HEADER, false); //如果需返回头部信息，则设置此参数为 true
+    curl_setopt($curl, CURLOPT_RETURNTRANSFER, true); //设置是否将响应结果以字符串形式返回
+    // 开启 SSL 验证
+    curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, true);
+    curl_setopt($curl, CURLOPT_SSL_VERIFYHOST, 2);
+    if($responsetype=="info") {
+        curl_setopt($curl, CURLOPT_NOBODY, true); // 禁止下载响应体
+    }
+    // 执行请求并获取响应结果
+    $data = array('data' => curl_exec($curl),'info' => curl_getinfo($curl));
+    curl_close($curl);  // 关闭 cURL 句柄
+    return $data[$responsetype] ?? $data; // 返回
 }
 ?>
