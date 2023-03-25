@@ -14,11 +14,11 @@
 6. 支持多种数据格式响应
 
 # 依赖
-## 文件（无需下载，仓库提供）
-1. simple_html_dom.php 
+## 文件
+1. (simple_html_dom.php)[https://simplehtmldom.sourceforge.io/docs/1.9/index.html#download] 
 2. lanzouyunapiconfig.php 
 
-## 扩展（按需下载和安装）
+## 扩展
 1. apcu (非必要，如果不需要使用缓存功能)
 2. curl (默认自带)
 
