@@ -18,7 +18,7 @@
 1. simple_html_dom.php 
 2. lanzouyunapiconfig.php 
 
-## 扩展
+## 扩展（按需下载和安装）
 1. apcu (非必要，如果不需要使用缓存功能)
 2. curl (默认自带)
 
