@@ -2,8 +2,8 @@
 /**
  * @package lanzouyunapi
  * @author wzdc
- * @version 1.0.4
- * @Date 2023-3-25
+ * @version 1.0.5
+ * @Date 2023-3-26
  * @link https://github.com/wzdc/lanzouyunapi
  */
  
@@ -22,8 +22,6 @@ $redirect = $_REQUEST["redirect"] ?? ""; //重定向
 
 //读取缓存
 if($cacheconfig["cache"]&&$data3=apcu_fetch($id)){
-    global $link;
-    
     if(!isset($data3["time"])&&isset($data3["link"])&&preg_match("/(?!(0000))\d{4}\/(?:0[1-9]|1[0-2])\/(?:0[1-9]|[12]\d|3[01])/",$data3["link"],$time)) //截取上传时间
 	    $data3["time"]=str_ireplace("/","-",$time[0]);
     
@@ -44,10 +42,10 @@ if($cacheconfig["cache"]&&$data3=apcu_fetch($id)){
     }
 }
 
-$mode == "moblie" ? moblie() : pc();
+$mode == "mobile" ? mobile() : pc();
 
 //使用手机UA获取
-function moblie(){ 
+function mobile(){ 
     global $id,$pw;
     $headers[] = "User-Agent: Mozilla/5.0 (iPad; U; CPU OS 6_0 like Mac OS X; zh-CN; iPad2)";
     $data=request("https://www.lanzoui.com/$id","GET",null,$headers,"data");
@@ -120,7 +118,7 @@ function response($code,$msg,$data){
     //自动切换
     if($auto&&$code!=4&&!$data["url"]){
         $auto=null;
-        $mode == "moblie" ? pc() : moblie();
+        $mode == "mobile" ? pc() : mobile();
         exit;
     }
     
