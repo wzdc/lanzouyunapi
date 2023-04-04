@@ -3,7 +3,7 @@
  * @package lanzouyunapi
  * @author wzdc
  * @version 1.0.5
- * @Date 2023-3-26
+ * @Date 2023-4-5
  * @link https://github.com/wzdc/lanzouyunapi
  */
  
@@ -69,6 +69,7 @@ function mobile(){
     $info["user"]=$html->find('.user-name',0)->innertext ?? (preg_match('/(?<=\<\/span>).*?(?=\<span class="mt2">)/',$fileinfo2,$username) ? trim($username[0]) : null); //获取分享者
     $info["time"]=preg_match('/(?<=\<span class="mt2"><\/span>).*?(?=\<span class="mt2">)/',$fileinfo2,$filetime) ? trim($filetime[0]) : $html->find('.appinfotime',0)->innertext ?? null; //获取上传时间
     $info["desc"]=preg_match('/(?<=\|).*?(?=$)/',$fileinfo,$filedesc) ? $filedesc[0] : null; //获取文件描
+    //$info["avatar"]=preg_match('/(?<=background:url\().+(?=\))/',$data,$fileavatar) ? $fileavatar[0] : null; //获取用户头像
     
     if($vr) 
     $json['url']=$vr; //无密码
@@ -95,6 +96,7 @@ function pc(){
     $info["user"]=$html->find('.user-name',0)->innertext ?? $html->find('font',0)->innertext ?? null; //获取分享者
     $info["time"]=preg_match('/(?<=\<span class="p7">上传时间：<\/span>).*?(?=\<br>)/',$data,$filetime) ? $filetime[0] : ($html->find('.n_file_infos',1)->innertext ?? null ? $html->find('.n_file_infos',0)->innertext : null); //获取上传时间
     $info["desc"]=preg_match('/(?<=\|).*?(?=$)/',$fileinfo,$filedesc) ? $filedesc[0] : null; //获取文件描述
+    //$info["avatar"]=preg_match('/(?<=background:url\().+(?=\))/',$data,$fileavatar) ? $fileavatar[0] : null; //获取用户头像
     
     if($src=$html->find('iframe',0)->src ?? null) { //无密码
         $data2=request("https://www.lanzoui.com$src")["data"];
@@ -176,9 +178,21 @@ function arrayToXml($arr,$dom=0,$item=0){
     return $dom->saveXML(); 
 }
 
-//处理蓝奏云链接
+//处理蓝奏云数据
 function e($json,$info){
 	global $link;
+	
+	//将上传时间转为 yyyy-mm-dd 格式
+	if (preg_match("/秒/", $info["time"] ?? "")) {
+        $info["time"] = date("Y-m-d", time() - intval($info["time"]));
+    } else if (preg_match("/分钟/", $info["time"] ?? "")) {
+        $info["time"] = date("Y-m-d", time() - intval($info["time"]) * 60);
+    } else if (preg_match("/小时/", $info["time"] ?? "")){
+        $info["time"] = date("Y-m-d", time() - intval($info["time"]) * 60* 60);
+    } else if (preg_match("/天/", $info["time"] ?? "")) {
+        $info["time"] = date("Y-m-d", time() - intval($info["time"]) * 24 * 60 * 60);
+    }
+    
     if($json['url']&&$json["dom"]) {
 	    $info["url"]=$json['dom'].$json['url']; //拼接链接
 	    if(isset($json["inf"])&&$json["inf"])$info["name"]=$json["inf"]; //文件名
