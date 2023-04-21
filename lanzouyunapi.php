@@ -3,7 +3,7 @@
  * @package lanzouyunapi
  * @author wzdc
  * @version 1.0.5
- * @Date 2023-4-5
+ * @Date 2023-4-21
  * @link https://github.com/wzdc/lanzouyunapi
  */
  
@@ -36,13 +36,18 @@ if($cacheconfig["cache"]&&$data3=apcu_fetch($id)){
     else if($data3["url"]){ //获取缓存的链接
         if($cacheconfig["verify"]&&$link2=request($data3["url"])["info"]["redirect_url"]){
             $data3["link"]=$link2;
+            if(!isset($data3["time"])&&preg_match("/(?!(0000))\d{4}\/(?:0[1-9]|1[0-2])\/(?:0[1-9]|[12]\d|3[01])/",$link2,$time)) //截取上传时间
+            $data3["time"]=str_ireplace("/","-",$time[0]);
             apcu_store($id,$data3,$cacheconfig["time"]);
         }
         exit(response(2,"来自缓存",$data3));
     }
 }
 
-$mode == "mobile" ? mobile() : pc();
+if($mode=="mobile")
+mobile();
+else 
+pc();
 
 //使用手机UA获取
 function mobile(){ 
@@ -57,9 +62,7 @@ function mobile(){
     	$data2=request("https://www.lanzoui.com/tp/$id2","GET",null,$headers,"data");
         $vr = preg_match("/(?<=')\?.+(?=')/",$data2,$vr) ? $vr[0] : null;
         $html2 = str_get_html($data2);
-    } else { 
-        $vr = $vr[0];
-    }
+    } else $vr = $vr[0];
     
     $json["dom"]=preg_match("/(?<=')https?:\/\/.+(?=')/",$data2 ?? $data,$url) ? $url[0] : null; //获取链接
     $fileinfo=$html->find('meta[name=description]',0)->content ?? "";
@@ -90,6 +93,7 @@ function pc(){
     $html=str_get_html($data);
     if(!$html) exit(response(-3,"获取失败",null)); //HTML解析失败
     
+    
     $fileinfo=$html->find('meta[name=description]',0)->content ?? "";
     $info["name"]=$html->find('.n_box_3fn',0)->innertext ?? $html->find('div[style=font-size: 30px;text-align: center;padding: 56px 0px 20px 0px;]',0)->innertext ?? null; //获取文件名
     $info["size"]=preg_match('/(?<=\文件大小：).*?(?=\|)/',$fileinfo,$filesize) ? $filesize[0] : null;  //获取文件大小 
@@ -98,7 +102,8 @@ function pc(){
     $info["desc"]=preg_match('/(?<=\|).*?(?=$)/',$fileinfo,$filedesc) ? $filedesc[0] : null; //获取文件描述
     //$info["avatar"]=preg_match('/(?<=background:url\().+(?=\))/',$data,$fileavatar) ? $fileavatar[0] : null; //获取用户头像
     
-    if($src=$html->find('iframe',0)->src ?? null) { //无密码
+    $src=$html->find('iframe',0)->src ?? null;
+    if($src) { //无密码
         $data2=request("https://www.lanzoui.com$src")["data"];
         preg_match("/(?<=sign':').+?(?=')/", $data2, $key);
         preg_match("/(?<=ws_sign = ').*?(?=')/", $data2, $a);
@@ -106,8 +111,10 @@ function pc(){
     } else { //有密码
         preg_match("/(?<=&sign=).+_c/", $data, $key);
     }
-    if(!isset($key[0]))
+    
+    if(!isset($key[0])) 
     exit(response(-2,$html->find('.off',0)->plaintext ?? "获取失败",null)); //错误
+    
 	$json=json_decode(request('https://www.lanzoui.com/ajaxm.php',"post",array('action' => 'downprocess', 'sign' => $key[0], 'p' => $pw, 'websign' => $a[0]??"", 'websignkey' => $b[0]??""),$headers,"data"),true); //POST请求API获取下载地址
 	$json["dom"].='/file/';
 	e($json,$info);
@@ -187,7 +194,7 @@ function e($json,$info){
         $info["time"] = date("Y-m-d", time() - intval($info["time"]));
     } else if (preg_match("/分钟/", $info["time"] ?? "")) {
         $info["time"] = date("Y-m-d", time() - intval($info["time"]) * 60);
-    } else if (preg_match("/小时/", $info["time"] ?? "")){
+    } else if (preg_match("/小时/", $info["time"] ?? "")) {
         $info["time"] = date("Y-m-d", time() - intval($info["time"]) * 60* 60);
     } else if (preg_match("/天/", $info["time"] ?? "")) {
         $info["time"] = date("Y-m-d", time() - intval($info["time"]) * 24 * 60 * 60);
