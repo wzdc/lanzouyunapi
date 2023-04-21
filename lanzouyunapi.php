@@ -21,33 +21,37 @@ $types = $_REQUEST["types"] ?? ""; //需要响应的数据类型
 $redirect = $_REQUEST["redirect"] ?? ""; //重定向
 
 //读取缓存
-if($cacheconfig["cache"]&&$data3=apcu_fetch($id)){
-    if(!isset($data3["time"])&&isset($data3["link"])&&preg_match("/(?!(0000))\d{4}\/(?:0[1-9]|1[0-2])\/(?:0[1-9]|[12]\d|3[01])/",$data3["link"],$time)) //截取上传时间
+if($cacheconfig["cache"]&&$data3=apcu_fetch($id)) {
+    if(!isset($data3["time"])&&isset($data3["link"])&&preg_match("/(?!(0000))\d{4}\/(?:0[1-9]|1[0-2])\/(?:0[1-9]|[12]\d|3[01])/",$data3["link"],$time)) { //截取上传时间
 	    $data3["time"]=str_ireplace("/","-",$time[0]);
+    }
     
     if($link){ //获取缓存的直链
-        if($cacheconfig["verify"]&&!preg_match('/200/',@get_headers($data3["link"])[0])){ //验证链接是否有效
+        if($cacheconfig["verify"]&&!preg_match('/200/',@get_headers($data3["link"])[0])) { //验证链接是否有效
             $data3["link"]=request($data3["url"])["info"]["redirect_url"]; //无效尝试重新获取
             apcu_store($id,$data3,$cacheconfig["time"]);
         }
-        if(isset($data3["link"]))
+        if(isset($data3["link"])) {
             exit(response(2,"来自缓存",$data3));
+        }
     }
-    else if($data3["url"]){ //获取缓存的链接
+    else if($data3["url"]) { //获取缓存的链接
         if($cacheconfig["verify"]&&$link2=request($data3["url"])["info"]["redirect_url"]){
+            if(!isset($data3["time"])&&preg_match("/(?!(0000))\d{4}\/(?:0[1-9]|1[0-2])\/(?:0[1-9]|[12]\d|3[01])/",$link2,$time)){ //截取上传时间
+                $data3["time"]=str_ireplace("/","-",$time[0]);
+            }
             $data3["link"]=$link2;
-            if(!isset($data3["time"])&&preg_match("/(?!(0000))\d{4}\/(?:0[1-9]|1[0-2])\/(?:0[1-9]|[12]\d|3[01])/",$link2,$time)) //截取上传时间
-            $data3["time"]=str_ireplace("/","-",$time[0]);
             apcu_store($id,$data3,$cacheconfig["time"]);
         }
         exit(response(2,"来自缓存",$data3));
     }
 }
 
-if($mode=="mobile")
-mobile();
-else 
-pc();
+if($mode=="mobile") {
+    mobile();
+} else { 
+    pc();
+}
 
 //使用手机UA获取
 function mobile(){ 
@@ -62,25 +66,27 @@ function mobile(){
     	$data2=request("https://www.lanzoui.com/tp/$id2","GET",null,$headers,"data");
         $vr = preg_match("/(?<=')\?.+(?=')/",$data2,$vr) ? $vr[0] : null;
         $html2 = str_get_html($data2);
-    } else $vr = $vr[0];
+    } else {
+        $vr = $vr[0];
+    }
     
-    $json["dom"]=preg_match("/(?<=')https?:\/\/.+(?=')/",$data2 ?? $data,$url) ? $url[0] : null; //获取链接
     $fileinfo=$html->find('meta[name=description]',0)->content ?? "";
-    $fileinfo2=$html->find('.mf',0)->innertext ?? "";
+    $json["dom"]=preg_match("/(?<=')https?:\/\/.+(?=')/",$data2 ?? $data,$url) ? $url[0] : null; //获取链接
     $info["name"]=$html->find('.appname',0)->innertext ?? (isset($html2) ? $html2->find('title',0)->innertext : ""); //获取文件名
     $info["size"]=preg_match('/(?<=\文件大小：).*?(?=\|)/',$fileinfo,$filesize) ? $filesize[0] : null; //获取文件大小
-    $info["user"]=$html->find('.user-name',0)->innertext ?? (preg_match('/(?<=\<\/span>).*?(?=\<span class="mt2">)/',$fileinfo2,$username) ? trim($username[0]) : null); //获取分享者
-    $info["time"]=preg_match('/(?<=\<span class="mt2"><\/span>).*?(?=\<span class="mt2">)/',$fileinfo2,$filetime) ? trim($filetime[0]) : $html->find('.appinfotime',0)->innertext ?? null; //获取上传时间
-    $info["desc"]=preg_match('/(?<=\|).*?(?=$)/',$fileinfo,$filedesc) ? $filedesc[0] : null; //获取文件描
+    $info["user"]=$html->find('.user-name',0)->innertext ?? (preg_match('/(?<=分享者:<\/span>).+(?= )/U',$data,$username) ? $username[0] : null); //获取分享者
+    $info["time"]=preg_match('/(?<=\<span class="mt2"><\/span>).*?(?=\<span class="mt2">)/',$data,$filetime) ? trim($filetime[0]) : $html->find('.appinfotime',0)->innertext ?? null; //获取上传时间
+    $info["desc"]=preg_match('/(?<=\|).*?(?=$)/',$fileinfo,$filedesc) ? $filedesc[0] : null; //获取文件描述
     //$info["avatar"]=preg_match('/(?<=background:url\().+(?=\))/',$data,$fileavatar) ? $fileavatar[0] : null; //获取用户头像
     
-    if($vr) 
-    $json['url']=$vr; //无密码
-    else {  //有密码（或遇到其他错误）
-    if(!preg_match("/(?<=').+_c/", $data2, $key))
-    exit(response(-2,$html->find('.off',0)->plaintext ?? "获取失败",null)); //错误
-	$json=json_decode(request('https://www.lanzoui.com/ajaxm.php', 'POST', array('action'=>'downprocess', 'sign'=>$key[0], 'p'=>$pw), $headers,"data"),true); //POST请求API获取下载地址
-	$json['dom'].='/file/';
+    if($vr) {
+        $json['url']=$vr; //无密码
+    } else {  //有密码（或遇到其他错误）
+    if(!preg_match("/(?<=').+_c/", $data2, $key)) {
+        exit(response(-2,$html->find('.off',0)->plaintext ?? "获取失败",null)); //错误
+    }
+	    $json=json_decode(request('https://www.lanzoui.com/ajaxm.php', 'POST', array('action'=>'downprocess', 'sign'=>$key[0], 'p'=>$pw), $headers,"data"),true); //POST请求API获取下载地址
+	    $json['dom'].='/file/';
     }
 	e($json,$info);
 }
@@ -112,9 +118,9 @@ function pc(){
         preg_match("/(?<=&sign=).+_c/", $data, $key);
     }
     
-    if(!isset($key[0])) 
-    exit(response(-2,$html->find('.off',0)->plaintext ?? "获取失败",null)); //错误
-    
+    if(!isset($key[0])) {
+        exit(response(-2,$html->find('.off',0)->plaintext ?? "获取失败",null)); //错误
+    }
 	$json=json_decode(request('https://www.lanzoui.com/ajaxm.php',"post",array('action' => 'downprocess', 'sign' => $key[0], 'p' => $pw, 'websign' => $a[0]??"", 'websignkey' => $b[0]??""),$headers,"data"),true); //POST请求API获取下载地址
 	$json["dom"].='/file/';
 	e($json,$info);
@@ -127,7 +133,11 @@ function response($code,$msg,$data){
     //自动切换
     if($auto&&$code!=4&&!$data["url"]){
         $auto=null;
-        $mode == "mobile" ? pc() : mobile();
+        if($mode=="mobile") {
+            mobile();
+        } else { 
+            pc();
+        }
         exit;
     }
     
@@ -202,7 +212,7 @@ function e($json,$info){
     
     if($json['url']&&$json["dom"]) {
 	    $info["url"]=$json['dom'].$json['url']; //拼接链接
-	    if(isset($json["inf"])&&$json["inf"])$info["name"]=$json["inf"]; //文件名
+	    if(isset($json["inf"])&&$json["inf"]) $info["name"]=$json["inf"]; //文件名
 	    if($link) {
 		    $info["link"]=request($info["url"])["info"]["redirect_url"]; //获取直链
 		    if(!$info["link"])
