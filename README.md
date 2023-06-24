@@ -13,15 +13,6 @@
 5. 支持缓存链接和验证缓存的链接是否有效
 6. 支持多种数据格式响应
 
-# 依赖
-## 文件
-1. [simple_html_dom.php](https://simplehtmldom.sourceforge.io/docs/1.9/index.html#download)
-2. lanzouyunapiconfig.php 
-
-## 扩展
-1. apcu (非必要，如果不需要使用缓存功能)
-2. curl (PHP默认自带)
-
 # 使用
 
 ## 请求
