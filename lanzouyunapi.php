@@ -3,7 +3,7 @@
  * @package lanzouyunapi
  * @author wzdc
  * @version 1.0.5
- * @Date 2023-4-21
+ * @Date 2023-7-4
  * @link https://github.com/wzdc/lanzouyunapi
  */
  
@@ -47,11 +47,8 @@ if($cacheconfig["cache"]&&$data3=apcu_fetch($id)) {
     }
 }
 
-if($mode=="mobile") {
-    mobile();
-} else { 
-    pc();
-}
+if($mode=="mobile") mobile();
+else pc();
 
 //使用手机UA获取
 function mobile(){ 
@@ -82,7 +79,7 @@ function mobile(){
     if($vr) {
         $json['url']=$vr; //无密码
     } else {  //有密码（或遇到其他错误）
-    if(!preg_match("/(?<=').+_c/", $data2, $key)) {
+    if(!preg_match("/(?<=sign = ').+'/", $data2, $key)) {
         exit(response(-2,$html->find('.off',0)->plaintext ?? "获取失败",null)); //错误
     }
 	    $json=json_decode(request('https://www.lanzoui.com/ajaxm.php', 'POST', array('action'=>'downprocess', 'sign'=>$key[0], 'p'=>$pw), $headers,"data"),true); //POST请求API获取下载地址
@@ -99,7 +96,6 @@ function pc(){
     $html=str_get_html($data);
     if(!$html) exit(response(-3,"获取失败",null)); //HTML解析失败
     
-    
     $fileinfo=$html->find('meta[name=description]',0)->content ?? "";
     $info["name"]=$html->find('.n_box_3fn',0)->innertext ?? $html->find('div[style=font-size: 30px;text-align: center;padding: 56px 0px 20px 0px;]',0)->innertext ?? null; //获取文件名
     $info["size"]=preg_match('/(?<=\文件大小：).*?(?=\|)/',$fileinfo,$filesize) ? $filesize[0] : null;  //获取文件大小 
@@ -115,7 +111,7 @@ function pc(){
         preg_match("/(?<=ws_sign = ').*?(?=')/", $data2, $a);
         preg_match("/(?<=wsk_sign = ').*?(?=')/", $data2, $b);
     } else { //有密码
-        preg_match("/(?<=&sign=).+_c/", $data, $key);
+        preg_match("/(?<=&sign=).+&/", preg_replace("/\/\/.+|\/\*.+\s?.*\*\//","",$data), $key);
     }
     
     if(!isset($key[0])) {
@@ -133,11 +129,8 @@ function response($code,$msg,$data){
     //自动切换
     if($auto&&$code!=4&&!$data["url"]){
         $auto=null;
-        if($mode=="mobile") {
-            mobile();
-        } else { 
-            pc();
-        }
+        if($mode=="mobile") mobile();
+        else pc();
         exit;
     }
     
