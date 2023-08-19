@@ -2,8 +2,8 @@
 /**
  * @package lanzouyunapi
  * @author wzdc
- * @version 1.0.5
- * @Date 2023-7-4
+ * @version 1.1.0
+ * @Date 2023-8-19
  * @link https://github.com/wzdc/lanzouyunapi
  */
  
@@ -79,10 +79,10 @@ function mobile(){
     if($vr) {
         $json['url']=$vr; //无密码
     } else {  //有密码（或遇到其他错误）
-    if(!preg_match("/(?<=sign = ').+'/", $data2, $key)) {
+    if(!$sign=sign($data2)) {
         exit(response(-2,$html->find('.off',0)->plaintext ?? "获取失败",null)); //错误
     }
-	    $json=json_decode(request('https://www.lanzoui.com/ajaxm.php', 'POST', array('action'=>'downprocess', 'sign'=>$key[0], 'p'=>$pw), $headers,"data"),true); //POST请求API获取下载地址
+	    $json=json_decode(request('https://www.lanzoui.com/ajaxm.php', 'POST', array('action'=>'downprocess', 'sign'=>$sign, 'p'=>$pw), $headers,"data"),true); //POST请求API获取下载地址
 	    $json['dom'].='/file/';
     }
 	e($json,$info);
@@ -107,17 +107,15 @@ function pc(){
     $src=$html->find('iframe',0)->src ?? null;
     if($src) { //无密码
         $data2=request("https://www.lanzoui.com$src")["data"];
-        preg_match("/(?<=sign':').+?(?=')/", $data2, $key);
         preg_match("/(?<=ws_sign = ').*?(?=')/", $data2, $a);
         preg_match("/(?<=wsk_sign = ').*?(?=')/", $data2, $b);
-    } else { //有密码
-        preg_match("/(?<=&sign=).+&/", preg_replace("/\/\/.+|\/\*.+\s?.*\*\//","",$data), $key);
-    }
+    } 
     
-    if(!isset($key[0])) {
+    $sign=sign($data2 ?? $data);
+    if(!$sign) {
         exit(response(-2,$html->find('.off',0)->plaintext ?? "获取失败",null)); //错误
     }
-	$json=json_decode(request('https://www.lanzoui.com/ajaxm.php',"post",array('action' => 'downprocess', 'sign' => $key[0], 'p' => $pw, 'websign' => $a[0]??"", 'websignkey' => $b[0]??""),$headers,"data"),true); //POST请求API获取下载地址
+	$json=json_decode(request('https://www.lanzoui.com/ajaxm.php',"post",array('action' => 'downprocess', 'sign' => $sign, 'p' => $pw, 'websign' => $a[0]??"", 'websignkey' => $b[0]??""),$headers,"data"),true); //POST请求API获取下载地址
 	$json["dom"].='/file/';
 	e($json,$info);
 }
@@ -129,8 +127,8 @@ function response($code,$msg,$data){
     //自动切换
     if($auto&&$code!=4&&!$data["url"]){
         $auto=null;
-        if($mode=="mobile") mobile();
-        else pc();
+        if($mode=="mobile") pc();
+        else mobile();
         exit;
     }
     
@@ -256,5 +254,22 @@ function request($url, $method = 'GET', $postdata = array(), $headers = array(),
     $data = array('data' => curl_exec($curl),'info' => curl_getinfo($curl));
     curl_close($curl);  // 关闭 cURL 句柄
     return $data[$responsetype] ?? $data; // 返回
+}
+
+//获取sign
+function sign($data) {
+    //$data=preg_replace("/\/\/.+|\/\*.+\s?.*\*\//","",$data);
+    if(preg_match("/(?<=').+?(?=_c)/", $data, $key)){
+        $str=$key[0];
+    } else {
+        preg_match_all("/(?<=').+?(?=')/",$data,$a);
+        $str="";
+        foreach ($a[0] as $v){
+            if(strlen($v) > strlen($str)) {
+                $str=$v;
+            }
+        }
+    }
+    return $str ?? "";
 }
 ?>
