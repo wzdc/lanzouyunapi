@@ -20,7 +20,7 @@
 请求示例：`lanzouyunapi.php?data=wzdc`
 | 参数 | 必填 | 默认 | 说明 |
 | -- | -- | -- | -- |
-| mode | 否 | pc | 获取数据方式（可选值：pc、mobile |
+| mode | 否 | pc | 获取数据方式（可选值：pc、mobile） |
 | data | 是 | | 蓝奏云链接或ID |
 | pw | 否 | | 密码 |
 | types | 否 | json | 返回的数据类型(可选值: text、json、xml) |
