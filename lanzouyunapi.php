@@ -2,7 +2,7 @@
 /**
  * @package lanzouyunapi
  * @author wzdc
- * @version 1.1.0
+ * @version 1.1.1
  * @Date 2023-8-19
  * @link https://github.com/wzdc/lanzouyunapi
  */
@@ -107,15 +107,17 @@ function pc(){
     $src=$html->find('iframe',0)->src ?? null;
     if($src) { //无密码
         $data2=request("https://www.lanzoui.com$src")["data"];
-        preg_match("/(?<=ws_sign = ').*?(?=')/", $data2, $a);
-        preg_match("/(?<=wsk_sign = ').*?(?=')/", $data2, $b);
+        $data2=preg_replace("/\/\/.+|\/\*.+\s?.*\*\//","",$data2);
+        preg_match("/(?<=')(?!=|post|sign|json)[a-zA-Z0-9]{4}(?=')/", $data2, $a);
+        preg_match("/(?<=')[0-9]{1}(?=')/", $data2, $b);
     } 
     
     $sign=sign($data2 ?? $data);
     if(!$sign) {
         exit(response(-2,$html->find('.off',0)->plaintext ?? "获取失败",null)); //错误
     }
-	$json=json_decode(request('https://www.lanzoui.com/ajaxm.php',"post",array('action' => 'downprocess', 'sign' => $sign, 'p' => $pw, 'websign' => $a[0]??"", 'websignkey' => $b[0]??""),$headers,"data"),true); //POST请求API获取下载地址
+    
+	$json=json_decode(request('https://www.lanzoui.com/ajaxm.php',"post",array('action' => 'downprocess',"signs" => "?ctdf", 'sign' => $sign, 'p' => $pw, 'websign' => $b[0]??"", 'websignkey' => $a[0]??"","ves" => 1),$headers,"data"),true); //POST请求API获取下载地址
 	$json["dom"].='/file/';
 	e($json,$info);
 }
@@ -258,7 +260,6 @@ function request($url, $method = 'GET', $postdata = array(), $headers = array(),
 
 //获取sign
 function sign($data) {
-    //$data=preg_replace("/\/\/.+|\/\*.+\s?.*\*\//","",$data);
     if(preg_match("/(?<=').+?(?=_c)/", $data, $key)){
         $str=$key[0];
     } else {
