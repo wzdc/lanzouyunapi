@@ -30,22 +30,30 @@
 
 ### 功能说明
 
-重定向：开启重定向(redirect)后，服务器会将获取到的链接进行重定向。如果获取链接失败则会返回错误信息，返回的数据类型由你（传入的types参数）决定。
-
-开启重定向：https://api.wzdc.tk/lanzouyunapi?data=wzdc&redirect=1
-
-获取文件直链：开启获取直链(link)后，服务器会尝试获取直链，如果失败则会返回原始链接，并告知客户端获取直链失败。(types=text除外）
-
-开启获取文件直链：https://api.wzdc.tk/lanzouyunapi?data=wzdc&link=1
-
-自动切换：例如当使用电脑UA获取链接失败就使用手机UA去获取（先用哪个由你传入的`mode`参数决定）。
-
-开启自动切换：https://api.wzdc.tk/lanzouyunapi?data=wzdc&mode=1
 
 | 参数 | 说明 |
 | -- | -- |
 | 1  | 开启 |
 | 0  | 关闭 |
+
+#### 重定向
+
+开启重定向(redirect)后，服务器会将获取到的链接进行重定向。如果获取链接失败则会返回错误信息，返回的数据类型由你（传入的types参数）决定。
+
+开启重定向：https://api.wzdc.tk/lanzouyunapi?data=wzdc&redirect=1
+
+#### 获取文件直链
+
+开启获取直链(link)后，服务器会尝试获取直链，如果失败则会返回原始链接，并告知客户端获取直链失败。(types=text除外）
+
+开启获取文件直链：https://api.wzdc.tk/lanzouyunapi?data=wzdc&link=1
+
+#### 自动切换
+
+例如当使用电脑UA获取链接失败就使用手机UA去获取（先用哪个由你传入的`mode`参数决定）。
+
+开启自动切换：https://api.wzdc.tk/lanzouyunapi?data=wzdc&mode=1
+
 
 ## 返回
 
