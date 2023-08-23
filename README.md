@@ -52,7 +52,7 @@
 
 例如当使用电脑UA获取链接失败就使用手机UA去获取（先用哪个由你传入的`mode`参数决定）。
 
-开启自动切换：https://api.wzdc.tk/lanzouyunapi?data=wzdc&mode=1
+开启自动切换：https://api.wzdc.tk/lanzouyunapi?data=wzdc&auto=1
 
 
 ## 返回
