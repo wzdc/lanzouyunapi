@@ -2,7 +2,7 @@
 /**
  * @package lanzouyunapi
  * @author wzdc
- * @version 1.2.2
+ * @version 1.2.3
  * @Date 2023-8-24
  * @link https://github.com/wzdc/lanzouyunapi
  */
@@ -358,7 +358,7 @@ function sign($data) {
         $lengths = array_map('strlen', $a[0]);
         $minIndex = array_search(min($lengths),$lengths);
         $sign=$a[0][$minIndex];
-    } else if(preg_match_all("/(?<=').{50,}+?(?=')/",$data,$a)) {
+    } else if(preg_match_all("/(?<=')[\w]{50,}+(?=')/",$data,$a)) {
         $lengths = array_map("strlen", $a[0]);
         $maxIndex = array_search(max($lengths),$lengths);
         $sign=$a[0][$maxIndex];
