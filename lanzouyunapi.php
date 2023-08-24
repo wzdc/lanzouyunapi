@@ -2,7 +2,7 @@
 /**
  * @package lanzouyunapi
  * @author wzdc
- * @version 1.2.0
+ * @version 1.2.1
  * @Date 2023-8-24
  * @link https://github.com/wzdc/lanzouyunapi
  */
@@ -22,7 +22,7 @@ $page = $_REQUEST["page"] ?? 1; //文件夹页数
 
 //读取缓存
 if($cacheconfig["cache"]&&$data3=apcu_fetch("file".$id)) {
-    if($redirect) header("Location: ".$data3{'url'}); //重定向
+    if($redirect) header("Location: ".$data3["url"]); //重定向
     else response(2,"来自缓存",$data3);
     exit;
 } else if($cacheconfig["foldercache"]&&$data3=apcu_fetch("folder".$id)) { //读取缓存（文件夹）
