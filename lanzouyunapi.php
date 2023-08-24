@@ -2,7 +2,7 @@
 /**
  * @package lanzouyunapi
  * @author wzdc
- * @version 1.2.1
+ * @version 1.2.2
  * @Date 2023-8-24
  * @link https://github.com/wzdc/lanzouyunapi
  */
@@ -148,7 +148,7 @@ function folder($data) {
         $info["name"]=trim($name[1]);
     } else if(preg_match("/(?<=user-title\">).*(?=<)/",$data,$name)){
         $info["name"]=$name[0];
-    } else if(preg_match("/(?>=class=\"b\">).*?(?=<div/)",$data,$name)) {
+    } else if(preg_match("/(?>=class=\"b\">).*?(?=<div)/",$data,$name)) {
         $info["name"]=$name[0];
     } else {
         $info["name"]=null;
