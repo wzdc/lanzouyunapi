@@ -1,0 +1,43 @@
+1.2.4 20230908
+1.优化缓存和上传时间转换功能 
+2.删除状态码 -5 、2、3、4、5
+3.修复”已超时，请刷新“
+
+1.2.3 20230824
+修复 Warning: preg_match_all(): Compilation failed: quantifier does not follow a repeatable item at offset 13
+
+1.2.2 20230824
+修复 Warning: preg_match(): Unknown modifier ')'
+
+1.2.1 20230824
+修复 Fatal error: Array and string offset access syntax with curly braces is no longer supported
+
+1.2.0 20230824
+1.修复”已超时，请刷新“错误
+2.添加对文件夹的解析
+3.自动切换默认开启（关闭：auto=0）
+4.删除验证链接是否有效、缓存时间配置
+5.删除link参数，自动获取直链
+
+1.1.1 20230819
+1.修复无法获取带webpage参数的文件
+
+1.1.0 20230819
+1.修复”已超时，请刷新“
+2.修复自动切换
+
+1.0.5 20230326
+
+1.0.4 20230325
+
+1.0.3 20230320
+
+1.0.2 20230106
+1.获取上传时间（只有开启显示上传时间才能获取到）
+2.修复手机UA请求带密码文件失败
+3.修复获取直链失败
+
+1.0.1 20230103
+修复部分链接文件信息错误
+
+1.0.0 20230103

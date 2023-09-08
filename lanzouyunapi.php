@@ -2,8 +2,8 @@
 /**
  * @package lanzouyunapi
  * @author wzdc
- * @version 1.2.3
- * @Date 2023-8-24
+ * @version 1.2.4
+ * @Date 2023-9-8
  * @link https://github.com/wzdc/lanzouyunapi
  */
  
@@ -19,39 +19,40 @@ $auto = $_REQUEST["auto"] ?? 1; //自动切换获取方式
 $types = $_REQUEST["types"] ?? ""; //需要响应的数据类型
 $redirect = $_REQUEST["redirect"] ?? ""; //重定向
 $page = $_REQUEST["page"] ?? 1; //文件夹页数
+$fid = preg_match("/^[^?]+/",$id,$fid) ? $fid[0] : null; //用于存储缓存的ID
 
 //读取缓存
-if($cacheconfig["cache"]&&$data3=apcu_fetch("file".$id)) {
+if($cacheconfig["cache"] && $data3=apcu_fetch("file".$fid)) {
     if($redirect) header("Location: ".$data3["url"]); //重定向
-    else response(2,"来自缓存",$data3);
+    else response(0,"来自缓存",$data3);
     exit;
-} else if($cacheconfig["foldercache"]&&$data3=apcu_fetch("folder".$id)) { //读取缓存（文件夹）
-    $info=$data3[0];
-    $parameter=$data3[1];
-    $parameter["pg"]=$page;
-    $t=$parameter["t"]-$data3[2]-time()+$page;
-    if($page!=1&&$t>=0) sleep($t);
+} else if($cacheconfig["foldercache"] && $data3=apcu_fetch("folder".$fid)) { //读取缓存（文件夹）
+    $info = $data3[0];
+    $parameter = $data3[1];
+    $parameter["pg"] = $page;
+    $t=$parameter["t"] - $data3[2] - time() + $page;
+    if($page!=1 && $t>=0) sleep($t);
     $json=json_decode(request('https://www.lanzoui.com/filemoreajax.php',"post",$parameter,null,"data"),true); //获取文件列表
     if(is_array($json["text"])){
         foreach ($json["text"] as $v){
-            $info["list"][]=array(
-                "id"=>$v["id"],  //ID
-                "name"=>$v["name_all"], //文件名 
-                "size"=>$v["size"],  //文件大小
-                "time"=>Text_conversion_time($v["time"]),  //上传时间
+            $info["list"][] = array(
+                "id"   => $v["id"],  //ID
+                "name" => $v["name_all"], //文件名 
+                "size" => $v["size"],  //文件大小
+                "time" => Text_conversion_time($v["time"]),  //上传时间
             );
         }
         
         if(count($json["text"]) >= 50) { 
-            $info["have_page"]=true;
+            $info["have_page"] = true;
         } else {
-            $info["have_page"]=false;
+            $info["have_page"] = false;
         }
         
-        response(4,"文件夹",$info);
+        response(0,"来自缓存",$info);
     } else {
-        $info["list"]=null;
-        response(5,$json["info"],$info);
+        $info["list"] = null;
+        response(-1,$json["info"],$info);
     }
     exit;
 }
@@ -139,30 +140,30 @@ function pc(){
 
 //获取文件夹
 function folder($data) {
-    global $id,$pw,$page,$cacheconfig;
+    global $id,$pw,$page,$cacheconfig,$fid;
     
     //获取名称
-    if(preg_match("/document\.title\s*=\s*(.*);/",$data,$var)&&preg_match("/".$var[1]."\s*=\s*'(.*)'/",$data,$name)){
-        $info["name"]=$name[1]; 
+    if(preg_match("/document\.title\s*=\s*(.*);/",$data,$var) && preg_match("/".$var[1]."\s*=\s*'(.*)'/",$data,$name)){
+        $info["name"] = $name[1]; 
     } else if(preg_match("/class=\"b\">(.*?)</",$data,$name)) {
-        $info["name"]=trim($name[1]);
+        $info["name"] = trim($name[1]);
     } else if(preg_match("/(?<=user-title\">).*(?=<)/",$data,$name)){
-        $info["name"]=$name[0];
+        $info["name"] = $name[0];
     } else if(preg_match("/(?>=class=\"b\">).*?(?=<div)/",$data,$name)) {
-        $info["name"]=$name[0];
+        $info["name"] = $name[0];
     } else {
-        $info["name"]=null;
+        $info["name"] = null;
     }
     
     //获取描述
-    if(preg_match("/(?<=说<\/span>)[\s\S]*?(?=<)/",$data,$d)&&$d[0]){
-        $info["desc"]=$d[0];
-    } else if(preg_match("/(?<=<span id=\"filename\">)[\s\S]*?(?=<)/",$data,$d)&&$d[0]) {
-        $info["desc"]=$d[0];
-    } else if(preg_match('/(?<=user-radio-0"><\/div>)[\s\S]*?(?=<)/',$data,$d)&&$d[0]) {
-        $info["desc"]=$d[0]; 
+    if(preg_match("/(?<=说<\/span>)[\s\S]*?(?=<)/",$data,$d) && $d[0]){
+        $info["desc"] = $d[0];
+    } else if(preg_match("/(?<=<span id=\"filename\">)[\s\S]*?(?=<)/",$data,$d) && $d[0]) {
+        $info["desc"] = $d[0];
+    } else if(preg_match('/(?<=user-radio-0"><\/div>)[\s\S]*?(?=<)/',$data,$d) && $d[0]) {
+        $info["desc"] = $d[0]; 
     } else {
-        $info["desc"]='';
+        $info["desc"] = '';
     }
     
     if(!preg_match("/(?<=data : {)[\s\S]*?(?=},)/",$data,$arr)) { //获取需要请求的参数
@@ -170,63 +171,63 @@ function folder($data) {
     }
     $arr=explode("\n",$arr[0]);
     foreach ($arr as $v){
-        if(preg_match("/'(.+)':([\d]+),?$|'(.+)':'(.*)',?$/",$v,$kv)&&($kv[1]||$kv[3])){
+        if(preg_match("/'(.+)':([\d]+),?$|'(.+)':'(.*)',?$/",$v,$kv) && ($kv[1] || $kv[3])){
             if($kv[1]){
-                $parameter[$kv[1]]=$kv[2];
+                $parameter[$kv[1]] = $kv[2];
             } else {
-                $parameter[$kv[3]]=$kv[4];
+                $parameter[$kv[3]] = $kv[4];
             }
-        } else if(preg_match("/'(.*)':(.*?),/",$v,$kv)&&$kv[1]){
+        } else if(preg_match("/'(.*)':(.*?),/",$v,$kv) && $kv[1]){
             preg_match("/".$kv[2]."\s*?=\s*?'(.*)'|".$kv[2]."\s*?=\s*?(\d+)/",$data,$value);
-            $parameter[$kv[1]]=$value[1]??"";
+            $parameter[$kv[1]] = $value[1]??"";
         }
     }
     
-    $parameter["pg"]=$page;
-    $parameter["pwd"]=$pw;
-    $t_end=$parameter["t"]-time(); 
-    if($page!=1) sleep($page);
+    $parameter["pg"] = $page;
+    $parameter["pwd"] = $pw;
+    $t_end=$parameter["t"] - time(); 
+    if($page != 1) sleep($page);
     
     //获取子文件夹
     if(preg_match("/(?<=id=\"folder\">)[\s\S]*?(?=id=\")/",$data,$flist)){
-        $folderarr=explode('<div class="mbx mbxfolder">',$flist[0]);
+        $folderarr = explode('<div class="mbx mbxfolder">',$flist[0]);
         unset($folderarr[0]);
         foreach ($folderarr as $f){
-            $info["folder"][]=array(
-                "id" => preg_match("/(?<=href=\"\/).*?(?=\")/",$f,$fi) ? $fi[0] : null, //ID
+            $info["folder"][] = array(
+                "id"   => preg_match("/(?<=href=\"\/).*?(?=\")/",$f,$fi) ? $fi[0] : null, //ID
                 "name" => preg_match("/(?<=filename\">).*?(?=<)/",$f,$fn) ? $fn[0] : null, //名称
                 "desc" => preg_match("/(?<=filesize\">)[\s\S]*?(?=<)/",$f,$fd) ? $fd[0] : null, //描述
             );
         }
     } else {
-        $info["folder"]=[];
+        $info["folder"] = [];
     }
     
     //获取文件列表
     $json=json_decode(request('https://www.lanzoui.com/filemoreajax.php',"post",$parameter,null,"data"),true); 
     if(is_array($json["text"])){
         if($cacheconfig["foldercache"]){
-            apcu_store("folder".$id,[$info,$parameter,$t_end],$t_end); //缓存参数
+            apcu_store("folder".$fid,[$info,$parameter,$t_end],$t_end); //缓存参数
         }
         foreach ($json["text"] as $v){
             $info["list"][]=array(
-                "id"=>$v["id"],  //ID
-                "name"=>$v["name_all"], //文件名 
-                "size"=>$v["size"],  //文件大小
-                "time"=>Text_conversion_time($v["time"]),  //上传时间
+                "id"   => $v["id"],  //ID
+                "name" => $v["name_all"], //文件名 
+                "size" => $v["size"],  //文件大小
+                "time" => Text_conversion_time($v["time"]),  //上传时间
             );
         }
         
         if(count($json["text"]) >= 50) { 
-            $info["have_page"]=true;
+            $info["have_page"] = true;
         } else {
-            $info["have_page"]=false;
+            $info["have_page"] = false;
         }
         
-        response(3,"文件夹",$info);
+        response(0,"文件夹",$info);
     } else {
         $info["list"]=null;
-        response(-5,$json["info"],$info);
+        response(-1,$json["info"],$info);
     }
 }
 
@@ -234,10 +235,10 @@ function folder($data) {
 function response($code,$msg,$data){
     global $auto,$types,$mode;
     
-    //自动切换
-    if($auto&&!in_array($code,[-4,3,4,5])&&@!$data["url"]){
-        $auto=null;
-        if($mode=="mobile") {
+    //自动切换获取方式
+    if($auto && $code!=-4 && @!$data["url"]){
+        $auto = null;
+        if($mode == "mobile") {
             pc();
         } else {
             mobile();
@@ -247,11 +248,11 @@ function response($code,$msg,$data){
     
     //响应数据
     //asort($data); //数组排序
-    $res=array("code"=>$code,"msg"=>$msg,"data"=>$data);
+    $res=array("code"=>$code, "msg"=>$msg, "data"=>$data);
     switch ($types) {
         case 'text':
-            header('Content-Type:text/plain;charset=UTF-8');
-            echo $code==0 ? $data["url"] : $msg;
+            header('Content-Type: text/plain;charset=UTF-8');
+            echo $data["url"] ?? $msg;
             break;
         case 'xml':
             header('Content-Type: application/xml');
@@ -288,25 +289,41 @@ function arrayToXml($arr,$dom=0,$item=0){
 
 //处理蓝奏云数据
 function e($json,$info){
-	global $redirect,$cacheconfig,$id;
-    $info["time"]=Text_conversion_time($info["time"]);
-    $info["desc"]=htmlspecialchars_decode(str_replace("<br /> ","\n",$info["desc"]));
-    if($json['url']&&$json["dom"]) {
-	    $info["url"]=$json['dom'].$json['url']; //拼接链接
-	    if(isset($json["inf"])&&$json["inf"]) $info["name"]=$json["inf"]; //文件名
-	    $url=request($info["url"])["info"]["redirect_url"]; //获取直链
+	global $redirect,$cacheconfig,$fid;
+	
+    $info["time"] = Text_conversion_time($info["time"]);
+    $info["desc"] = htmlspecialchars_decode(str_replace("<br /> ","\n",$info["desc"]));
+    
+    if($json['url'] && $json["dom"]) {
+	    $info["url"] = $json['dom'].$json['url']; //拼接链接
+	    
+	    if(isset($json["inf"]) && $json["inf"]) { 
+	        $info["name"] = $json["inf"]; //文件名
+	    }
+	    
+	    $url = request($info["url"])["info"]["redirect_url"]; //获取直链
+		
 		if(!$url) {
 		    response(1,"获取直链失败",$info); //链接获取失败
 		 } else {
-		     $info["url"]=$url;
-		     if(!$info["time"]&&preg_match("/(?!(0000))\d{4}\/(?:0[1-9]|1[0-2])\/(?:0[1-9]|[12]\d|3[01])/",$url,$time)) $info["time"]=str_ireplace("/","-",$time[0]); //截取上传时间
-             if($cacheconfig["cache"]&&preg_match("/(?<=&e=)\d*(?=&)/",$url,$endtime)) apcu_store("file".$id,$info,$endtime[0]-time()); //写入缓存
-             if($redirect)  header("Location: ".$url); //重定向
-    	     else response(0,"成功",$info);
+		     $info["url"] = $url;
+		     if(!$info["time"] && preg_match("/(?!(0000))\d{4}\/(?:0[1-9]|1[0-2])\/(?:0[1-9]|[12]\d|3[01])/",$url,$time)) {
+		         $info["time"] = str_ireplace("/","-",$time[0]); //截取上传时间
+		     }
+		     
+             if($cacheconfig["cache"] && preg_match("/(?<=&e=)\d*(?=&)/",$url,$endtime)){
+                 apcu_store("file".$fid,$info,$endtime[0]-time()); //写入缓存
+             }
+             
+             if($redirect) { 
+                 header("Location: ".$url); //重定向
+             } else { 
+                 response(0,"成功",$info);
+             }
 		}
     } else {
-        $info["url"]=null;
-	    response(-1,$json['inf']??"获取失败",$info); //蓝奏云返回的错误信息
+        $info["url"] = null;
+	    response(-1,$json['inf'] ?? "获取失败",$info); //蓝奏云返回的错误信息
 	}
 }
 
@@ -349,37 +366,43 @@ function request($url, $method = 'GET', $postdata = array(), $headers = array(),
 //获取sign
 function sign($data) {
     $data=preg_replace("/\/\/.*?|\/\*(?s)\*\/|function woio[\s\S]*?}/","",$data);
-    if(preg_match("/(?<='sign':)[\w]+?(?=,)/",$data,$b)) {
+    if(preg_match("/(?<='sign':')\w+?(?=')/",$data,$a)) {
+        $sign = $a[0];
+    }
+    else if(preg_match("/(?<='sign':)[\w]+?(?=,)/",$data,$b)) {
         preg_match_all("/(?<=".$b[0]." = ').*(?=')/",$data,$a);
         $lengths = array_map("strlen", $a[0]);
         $minIndex = array_search(min($lengths),$lengths);
-        $sign=$a[0][$minIndex];
+        $sign = $a[0][$minIndex];
     } else if(preg_match_all("/(?<=').+?_c/", $data, $a)){
         $lengths = array_map('strlen', $a[0]);
         $minIndex = array_search(min($lengths),$lengths);
-        $sign=$a[0][$minIndex];
+        $sign = $a[0][$minIndex];
     } else if(preg_match_all("/(?<=')[\w]{50,}+(?=')/",$data,$a)) {
         $lengths = array_map("strlen", $a[0]);
         $maxIndex = array_search(max($lengths),$lengths);
-        $sign=$a[0][$maxIndex];
+        $sign = $a[0][$maxIndex];
     } else {
-        $sign=false;
+        $sign = false;
     }
     return $sign;
 }
 
 //将上传时间转为 yyyy-mm-dd 格式
 function Text_conversion_time($str){
-    if (preg_match("/秒/", $str ?? "")) {
-        return date("Y-m-d", time() - intval($str));
-    } else if (preg_match("/分钟/", $str ?? "")) {
-        return date("Y-m-d", time() - intval($str) * 60);
-    } else if (preg_match("/小时/", $str ?? "")) {
-        return date("Y-m-d", time() - intval($str) * 60* 60);
-    } else if (preg_match("/天/", $str ?? "")) {
-        return date("Y-m-d", time() - intval($str) * 24 * 60 * 60);
+    if(!$str) {
+        return $str;
+    } else if (preg_match("/^\d+(?=秒)/",$str,$i)) {
+        return date("Y-m-d", time() - $i[0]);
+    } else if (preg_match("/^\d+(?=分钟)/",$str,$i)) {
+        return date("Y-m-d", time() - $i[0] * 60);
+    } else if (preg_match("/^\d+(?=小时)/",$str,$i)) {
+        return date("Y-m-d", time() - $i[0] * 60 * 60);
+    } else if (preg_match("/^\d+(?=天)/", $str,$i)) {
+        return date("Y-m-d", time() - $i[0] * 24 * 60 * 60);
     } else {
         return $str;
     }
 }
+
 ?>
