@@ -18,11 +18,11 @@
 
 ## 请求示例
 
-无密码：https://api.wzdc.tk/lanzouyunapi?data=https://www.lanzoui.com/wzdc
+无密码：https://api.wzdc.cc/lzy/lanzouyunapi.php?data=https://www.lanzoui.com/wzdc
 
-有密码：https://api.wzdc.tk/lanzouyunapi?data=https://wdsjhskj.lanzoum.com/iSzyf16gw8ti&pw=3ikz
+有密码：https://api.wzdc.cc/lzy/lanzouyunapi.php?data=https://wdsjhskj.lanzoum.com/iSzyf16gw8ti&pw=3ikz
 
-直接下载：https://api.wzdc.tk/lanzouyunapi?data=https://wdsjhskj.lanzoum.com/iSzyf16gw8ti&pw=3ikz&redirect=1
+直接下载：https://api.wzdc.cc/lzy/lanzouyunapi.php?data=https://wdsjhskj.lanzoum.com/iSzyf16gw8ti&pw=3ikz&redirect=1
 
 ## 返回数据
 ```json
