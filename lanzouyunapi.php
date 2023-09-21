@@ -2,8 +2,8 @@
 /**
  * @package lanzouyunapi
  * @author wzdc
- * @version 1.2.4
- * @Date 2023-9-8
+ * @version 1.2.5
+ * @Date 2023-9-21
  * @link https://github.com/wzdc/lanzouyunapi
  */
  
@@ -52,16 +52,14 @@ if($cacheconfig["cache"] && $data3=apcu_fetch("file".$fid)) {
         response(0,"来自缓存",$info);
     } else {
         $info["list"] = null;
+        $auto = 0;
         response(-1,$json["info"],$info);
     }
     exit;
 }
 
-if($mode=="mobile") {
-    mobile();
-} else {
-    pc();
-}
+if($mode=="mobile") mobile(); 
+else pc();
 
 //使用手机UA获取
 function mobile(){ 
@@ -82,9 +80,9 @@ function mobile(){
     
     $fileinfo=$html->find('meta[name=description]',0)->content ?? "";
     $json["dom"]=preg_match("/(?<=')https?:\/\/.+(?=')/",$data2 ?? $data,$url) ? $url[0] : null; //获取链接
-    $info["name"]=$html->find('.appname',0)->innertext ?? (isset($html2) ? $html2->find('title',0)->innertext : ""); //获取文件名
+    $info["name"]=isset($html2) ? $html2->find('title',0)->innertext : $html->find('.appname',0)->innertext ?? ""; //获取文件名
     $info["size"]=preg_match('/(?<=\文件大小：).*?(?=\|)/',$fileinfo,$filesize) ? $filesize[0] : null; //获取文件大小
-    $info["user"]=$html->find('.user-name',0)->innertext ?? (preg_match('/(?<=分享者:<\/span>).+(?= )/U',$data,$username) ? $username[0] : null); //获取分享者
+    $info["user"]=preg_match('/(?<=分享者:<\/span>).+(?= )/U',$data,$username) ? $username[0] : $html->find('.user-name',0)->innertext ?? null; //获取分享者
     $info["time"]=preg_match('/(?<=\<span class="mt2"><\/span>).*?(?=\<span class="mt2">)/',$data,$filetime) ? trim($filetime[0]) : $html->find('.appinfotime',0)->innertext ?? null; //获取上传时间
     $info["desc"]=preg_match('/(?<=\|).*?(?=$)/',$fileinfo,$filedesc) ? $filedesc[0] : null; //获取文件描述
     //$info["avatar"]=preg_match('/(?<=background:url\().+(?=\))/',$data,$fileavatar) ? $fileavatar[0] : null; //获取用户头像
@@ -115,7 +113,14 @@ function pc(){
     $info["name"]=$html->find('.n_box_3fn',0)->innertext ?? $html->find('div[style=font-size: 30px;text-align: center;padding: 56px 0px 20px 0px;]',0)->innertext ?? null; //获取文件名
     $info["size"]=preg_match('/(?<=\文件大小：).*?(?=\|)/',$fileinfo,$filesize) ? $filesize[0] : null;  //获取文件大小 
     $info["user"]=$html->find('.user-name',0)->innertext ?? $html->find('font',0)->innertext ?? null; //获取分享者
-    $info["time"]=preg_match('/(?<=\<span class="p7">上传时间：<\/span>).*?(?=\<br>)/',$data,$filetime) ? $filetime[0] : ($html->find('.n_file_infos',1)->innertext ?? null ? $html->find('.n_file_infos',0)->innertext : null); //获取上传时间
+    //获取上传时间
+    if(preg_match('/(?<=\<span class="p7">上传时间：<\/span>).*?(?=\<br>)/',$data,$filetime)){
+        $info["time"] = $filetime[0];
+    } else if(isset($html->find('.n_file_infos',1)->innertext)) {
+        $info["time"] = $html->find('.n_file_infos',0)->innertext;
+    } else {
+        $info["time"] = null;
+    }
     $info["desc"]=preg_match('/(?<=\|).*?(?=$)/',$fileinfo,$filedesc) ? $filedesc[0] : null; //获取文件描述
     //$info["avatar"]=preg_match('/(?<=background:url\().+(?=\))/',$data,$fileavatar) ? $fileavatar[0] : null; //获取用户头像
     
@@ -236,13 +241,10 @@ function response($code,$msg,$data){
     global $auto,$types,$mode;
     
     //自动切换获取方式
-    if($auto && $code!=-4 && @!$data["url"]){
+    if($auto && $code!=-4 && @!$data["url"] && !in_array($msg,array("密码不正确","文件夹","来自缓存"))){
         $auto = null;
-        if($mode == "mobile") {
-            pc();
-        } else {
-            mobile();
-        }
+        if($mode == "mobile") pc();
+        else mobile();
         exit;
     }
     
@@ -392,14 +394,18 @@ function sign($data) {
 function Text_conversion_time($str){
     if(!$str) {
         return $str;
-    } else if (preg_match("/^\d+(?=秒)/",$str,$i)) {
+    } else if (preg_match("/^\d+(?=\s*秒)/",$str,$i)) {
         return date("Y-m-d", time() - $i[0]);
-    } else if (preg_match("/^\d+(?=分钟)/",$str,$i)) {
+    } else if (preg_match("/^\d+(?=\s*分钟)/",$str,$i)) {
         return date("Y-m-d", time() - $i[0] * 60);
-    } else if (preg_match("/^\d+(?=小时)/",$str,$i)) {
+    } else if (preg_match("/^\d+(?=\s*小时)/",$str,$i)) {
         return date("Y-m-d", time() - $i[0] * 60 * 60);
-    } else if (preg_match("/^\d+(?=天)/", $str,$i)) {
+    } else if (preg_match("/^\d+(?=\s*天)/", $str,$i)) {
         return date("Y-m-d", time() - $i[0] * 24 * 60 * 60);
+    } else if (strpos($str,"昨天") !== false) {
+        return date("Y-m-d", time() -  24 * 60 * 60);
+    } else if (strpos($str,"前天") !== false) {
+        return date("Y-m-d", time() - 2 * 24 * 60 * 60);
     } else {
         return $str;
     }
