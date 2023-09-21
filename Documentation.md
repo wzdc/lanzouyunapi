@@ -1,7 +1,7 @@
 # 请求
 请求类型：`GET/POST`
 
-请求示例：https://api.wzdc.tk/lanzouyunapi?data=wzdc
+请求示例：https://api.wzdc.tk/lanzouyunapi.php?data=wzdc
 | 参数 | 必填 | 默认 | 说明 |
 | -- | -- | -- | -- |
 | mode | 否 | pc | 获取数据方式（可选值：pc、mobile） |
@@ -24,13 +24,13 @@
 
 开启直接下载(redirect)后，服务器会将获取到的链接进行重定向。如果获取链接失败则会返回错误信息，返回的数据类型由你（传入的`types`参数）决定。
 
-直接下载：https://api.wzdc.tk/lanzouyunapi?data=wzdc&redirect=1
+直接下载：https://api.wzdc.tk/lanzouyunapi.php?data=wzdc&redirect=1
 
 ## 自动切换获取方式
 
 例如当使用电脑UA获取链接失败就使用手机UA去获取（先用哪个由你传入的`mode`参数决定）。
 
-自动切换获取方式默认开启，关闭：https://api.wzdc.tk/lanzouyunapi?data=wzdc&auto=0
+自动切换获取方式默认开启，关闭：https://api.wzdc.tk/lanzouyunapi.php?data=wzdc&auto=0
 
 # 返回
 
