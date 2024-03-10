@@ -30,7 +30,7 @@
 
 例如当使用电脑UA获取链接失败就使用手机UA去获取（先用哪个由你传入的`mode`参数决定）。
 
-自动切换获取方式默认开启，关闭：https://api.wzdc.tk/lanzouyunapi.php?data=wzdc&auto=0
+自动切换获取方式默认开启，关闭：https://vercel-chi-kohl.vercel.app/lanzouyunapi.php?data=wzdc&auto=0
 
 # 返回
 
