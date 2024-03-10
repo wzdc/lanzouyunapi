@@ -1,7 +1,7 @@
 # 请求
 请求类型：`GET/POST`
 
-请求示例：https://api.wzdc.tk/lanzouyunapi.php?data=wzdc
+请求示例：https://vercel-chi-kohl.vercel.app/lanzouyunapi.php?data=wzdc
 | 参数 | 必填 | 默认 | 说明 |
 | -- | -- | -- | -- |
 | mode | 否 | pc | 获取数据方式（可选值：pc、mobile） |
@@ -24,7 +24,7 @@
 
 开启直接下载(redirect)后，服务器会将获取到的链接进行重定向。如果获取链接失败则会返回错误信息，返回的数据类型由你（传入的`types`参数）决定。
 
-直接下载：https://api.wzdc.tk/lanzouyunapi.php?data=wzdc&redirect=1
+直接下载：https://vercel-chi-kohl.vercel.app/lanzouyunapi.php?data=wzdc&redirect=1
 
 ## 自动切换获取方式
 
