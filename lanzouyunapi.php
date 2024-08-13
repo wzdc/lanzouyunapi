@@ -2,8 +2,8 @@
 /**
  * @package lanzouyunapi
  * @author wzdc
- * @version 1.2.6
- * @Date 2024-8-13
+ * @version 1.2.7
+ * @Date 2024-8-14
  * @link https://github.com/wzdc/lanzouyunapi
  */
  
@@ -110,7 +110,7 @@ function pc(){
     if(!$html) exit(response(-3,"获取失败",null)); //HTML解析失败
     
     $fileinfo=$html->find('meta[name=description]',0)->content ?? "";
-    $info["name"]=$html->find('.n_box_3fn',0)->innertext ?? $html->find('div[style=font-size: 30px;text-align: center;padding: 56px 0px 20px 0px;]',0)->innertext ?? null; //获取文件名
+    $info["name"]=$html->find('.n_box_3fn',0)->innertext ?? $html->find('div[style=font-size: 30px;text-align: center;padding: 56px 0px 20px 0px;]',0)->innertext ?? $html->find('span',0)->innertext ?? null; //获取文件名
     $info["size"]=preg_match('/(?<=\文件大小：).*?(?=\|)/',$fileinfo,$filesize) ? $filesize[0] : null;  //获取文件大小 
     $info["user"]=$html->find('.user-name',0)->innertext ?? $html->find('font',0)->innertext ?? null; //获取分享者
     //获取上传时间
@@ -202,6 +202,7 @@ function folder($data) {
     
     //获取子文件夹
     $folderarr=preg_split('/<div class="pc-folderlink">|<div class="mbx mbxfolder">/', $data);
+    $info["folder"] = [];
     if($folderarr){
         unset($folderarr[0]);
         foreach ($folderarr as $f){
@@ -211,8 +212,6 @@ function folder($data) {
                 "desc" => preg_match("/(?<=filesize\">)[\s\S]*?(?=<)/",$f,$fd) ? $fd[0] : null, //描述
             );
         }
-    } else {
-        $info["folder"] = [];
     }
     
     //获取文件列表
