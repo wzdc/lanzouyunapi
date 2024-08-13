@@ -2,8 +2,8 @@
 /**
  * @package lanzouyunapi
  * @author wzdc
- * @version 1.2.5
- * @Date 2023-9-21
+ * @version 1.2.6
+ * @Date 2024-8-13
  * @link https://github.com/wzdc/lanzouyunapi
  */
  
@@ -80,7 +80,7 @@ function mobile(){
     
     $fileinfo=$html->find('meta[name=description]',0)->content ?? "";
     $json["dom"]=preg_match("/(?<=')https?:\/\/.+(?=')/",$data2 ?? $data,$url) ? $url[0] : null; //获取链接
-    $info["name"]=isset($html2) ? $html2->find('title',0)->innertext : $html->find('.appname',0)->innertext ?? ""; //获取文件名
+    $info["name"]=isset($html2) ? $html2->find('title',0)->innertext : $html->find('.appname',0)->innertext ?? null; //获取文件名
     $info["size"]=preg_match('/(?<=\文件大小：).*?(?=\|)/',$fileinfo,$filesize) ? $filesize[0] : null; //获取文件大小
     $info["user"]=preg_match('/(?<=分享者:<\/span>).+(?= )/U',$data,$username) ? $username[0] : $html->find('.user-name',0)->innertext ?? null; //获取分享者
     $info["time"]=preg_match('/(?<=\<span class="mt2"><\/span>).*?(?=\<span class="mt2">)/',$data,$filetime) ? trim($filetime[0]) : $html->find('.appinfotime',0)->innertext ?? null; //获取上传时间
@@ -171,6 +171,13 @@ function folder($data) {
         $info["desc"] = '';
     }
     
+    //获取分享者
+    /*if(preg_match("/(?<=user-name\">).+?(?=<)/",$data,$u) && $u[0]){
+        $info["user"] = $u[0];
+    } else {
+        $info["user"] = null;
+    }*/
+    
     if(!preg_match("/(?<=data : {)[\s\S]*?(?=},)/",$data,$arr)) { //获取需要请求的参数
         exit(response(-2,"获取失败",null));
     }
@@ -194,13 +201,13 @@ function folder($data) {
     if($page != 1) sleep($page);
     
     //获取子文件夹
-    if(preg_match("/(?<=id=\"folder\">)[\s\S]*?(?=id=\")/",$data,$flist)){
-        $folderarr = explode('<div class="mbx mbxfolder">',$flist[0]);
+    $folderarr=preg_split('/<div class="pc-folderlink">|<div class="mbx mbxfolder">/', $data);
+    if($folderarr){
         unset($folderarr[0]);
         foreach ($folderarr as $f){
             $info["folder"][] = array(
                 "id"   => preg_match("/(?<=href=\"\/).*?(?=\")/",$f,$fi) ? $fi[0] : null, //ID
-                "name" => preg_match("/(?<=filename\">).*?(?=<)/",$f,$fn) ? $fn[0] : null, //名称
+                "name" => preg_match("/(?<=filename\">|<a href=\"\/".$fi[0]."\">).+?(?=<)/",$f,$fn) ? $fn[0] : null, //名称
                 "desc" => preg_match("/(?<=filesize\">)[\s\S]*?(?=<)/",$f,$fd) ? $fd[0] : null, //描述
             );
         }
@@ -212,7 +219,7 @@ function folder($data) {
     $json=json_decode(request('https://www.lanzoui.com/filemoreajax.php',"post",$parameter,null,"data"),true); 
     if(is_array($json["text"])){
         if($cacheconfig["foldercache"]){
-            apcu_store("folder".$fid,[$info,$parameter,$t_end],$t_end); //缓存参数
+            apcu_store("folder$fid",[$info,$parameter,$t_end],$t_end); //缓存参数
         }
         foreach ($json["text"] as $v){
             $info["list"][]=array(
@@ -313,8 +320,8 @@ function e($json,$info){
 		         $info["time"] = str_ireplace("/","-",$time[0]); //截取上传时间
 		     }
 		     
-             if($cacheconfig["cache"] && preg_match("/(?<=&e=)\d*(?=&)/",$url,$endtime)){
-                 apcu_store("file".$fid,$info,$endtime[0]-time()); //写入缓存
+             if($cacheconfig["cache"]){
+                  apcu_store("file$fid",$info,preg_match("/(?<=&e=)\d*(?=&)/",$url,$endtime) ? $endtime[0] - time() : $cacheconfig["cacheexpired"]); //写入缓存
              }
              
              if($redirect) { 
@@ -410,5 +417,4 @@ function Text_conversion_time($str){
         return $str;
     }
 }
-
 ?>
