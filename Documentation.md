@@ -4,33 +4,11 @@
 请求示例：https://vercel-chi-kohl.vercel.app/lanzouyunapi.php?data=wzdc
 | 参数 | 必填 | 默认 | 说明 |
 | -- | -- | -- | -- |
-| mode | 否 | pc | 获取数据方式（可选值：pc、mobile） |
 | data | 是 | | 蓝奏云链接或ID |
 | pw | 否 | | 密码 |
 | types | 否 | json | 返回的数据类型(可选值: text、json、xml) |
 | redirect | 否 | 0 | 直接下载 |
-| auto | 否 | 1 | 自动切换获取方式 |
 | page | 否 | 1 | 页数 |
-
-# 功能说明
-
-
-| 参数 | 说明 |
-| -- | -- |
-| 1  | 开启 |
-| 0  | 关闭 |
-
-## 直接下载
-
-开启直接下载(redirect)后，服务器会将获取到的链接进行重定向。如果获取链接失败则会返回错误信息，返回的数据类型由你（传入的`types`参数）决定。
-
-直接下载：https://vercel-chi-kohl.vercel.app/lanzouyunapi.php?data=wzdc&redirect=1
-
-## 自动切换获取方式
-
-例如当使用电脑UA获取链接失败就使用手机UA去获取（先用哪个由你传入的`mode`参数决定）。
-
-自动切换获取方式默认开启，关闭：https://vercel-chi-kohl.vercel.app/lanzouyunapi.php?data=wzdc&auto=0
 
 # 返回
 
