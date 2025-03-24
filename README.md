@@ -18,11 +18,11 @@
 
 ## 请求示例
 
-无密码：https://vercel-chi-kohl.vercel.app/lanzouyunapi.php?data=https://www.lanzoui.com/wzdc
+无密码：https://vercel-chi-kohl.vercel.app/lanzouyunapi.php?url=https://www.lanzoui.com/wzdc
 
-有密码：https://vercel-chi-kohl.vercel.app/lanzouyunapi.php?data=https://wdsjhskj.lanzoum.com/iSzyf16gw8ti&pw=3ikz
+有密码：https://vercel-chi-kohl.vercel.app/lanzouyunapi.php?url=https://wdsjhskj.lanzoum.com/iSzyf16gw8ti&pw=3ikz
 
-直接下载：https://vercel-chi-kohl.vercel.app/lanzouyunapi.php?data=https://wdsjhskj.lanzoum.com/iSzyf16gw8ti&pw=3ikz&redirect=1
+直接下载：https://vercel-chi-kohl.vercel.app/lanzouyunapi.php?url=https://wdsjhskj.lanzoum.com/iSzyf16gw8ti&pw=3ikz&type=down
 
 ## 返回数据
 ```json
