@@ -1,7 +1,7 @@
 # 请求
 请求类型：`GET/POST`
 
-请求示例：https://vercel-chi-kohl.vercel.app/lanzouyunapi.php?data=wzdc
+请求示例：https://vercel-chi-kohl.vercel.app/lanzouyunapi.php?url=wzdc
 | 参数 | 必填 | 默认 | 说明 |
 | -- | -- | -- | -- |
 | url | 是 | | 蓝奏云链接或ID |
