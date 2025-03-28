@@ -15,7 +15,7 @@
 | -- | -- | -- |
 | code | 状态码 | int |
 | msg | 信息 | String |
-| data | 文件（夹）信息 |  |
+| data | 文件（夹）信息 | Object |
 
 ## 文件信息
 | 参数 | 说明 | 数据类型 |
@@ -30,10 +30,10 @@
 ## 文件夹信息
 | 参数 | 说明 | 数据类型 |
 | -- | -- | -- |
-| name | 文件夹名称 | string |
-| desc | 文件夹描述 | string |
-| folder | 子文件夹列表 |  |
-| list | 文件列表 | |
+| name | 文件夹名称 | String |
+| desc | 文件夹描述 | String |
+| folder | 子文件夹列表 | Array |
+| list | 文件列表 | Array |
 | have_page | 有无下一页 | Boolean |
 
 ### 子文件夹列表
@@ -67,4 +67,4 @@
 # 其他说明
 1. 遇到无法解析请附带无法解析的文件分享链接[提交issues](https://github.com/wzdc/lanzouyunapi/issues)
 2. 文件夹查看多页内容需要等待一定时间才能查看更多页内容（官方限制）。对于页数较多的文件夹，缓存可以解决等待时间长的问题。
-3. 文件夹不支持`types=text`
+3. 文件夹不支持`type=text`
