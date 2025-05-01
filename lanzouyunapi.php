@@ -7,7 +7,7 @@
  * @link https://github.com/wzdc/lanzouyunapi
  */
  
-//error_reporting(0); // 不显示错误
+error_reporting(0); // 不显示错误
 require('simple_html_dom.php'); //HTML解析
 include "lanzouyunapiconfig.php"; //配置文件
 header('Access-Control-Allow-Origin:*'); //允许跨站请求
