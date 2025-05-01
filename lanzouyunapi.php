@@ -2,12 +2,12 @@
 /**
  * @package lanzouyunapi
  * @author wzdc
- * @version 1.2.9
- * @Date 2025-03-24
+ * @version 1.3.0
+ * @Date 2025-5-2
  * @link https://github.com/wzdc/lanzouyunapi
  */
  
-error_reporting(0); // 不显示错误
+//error_reporting(0); // 不显示错误
 require('simple_html_dom.php'); //HTML解析
 include "lanzouyunapiconfig.php"; //配置文件
 header('Access-Control-Allow-Origin:*'); //允许跨站请求
@@ -48,7 +48,7 @@ function mobile(){
     $html2_title = null;
     
     if(!preg_match("/(?<=')\?.+(?=')/",$js,$vr)) { 
-    	$id2 = preg_match('/(?<=tp\/)\w+/',$data,$id2) ? $id2[0] : $id;
+    	$id2 = preg_match('/(?<=tp\/)[\w?&=]+/',$data,$id2) ? $id2[0] : $id;
     	$data2 = request("https://www.lanzoui.com/tp/$id2","GET",null,$headers,"data");
         $html2 = str_get_html($data2);
         if($html2) {
@@ -89,21 +89,11 @@ function mobile(){
 
     if($vr) {
         $info["url"] = $dom.$vr; //无密码
-        $json = [];
-    } else {  //有密码（或遇到其他错误）
-        $sign=sign($js2 ?? $js);
-        if(!$sign) exit(response(-2,$error,null)); //错误
-        else if(strpos($js2 ?? $js,"document.getElementById('pwd').value;") && !$pw) {
-            $info["url"] = null;
-            exit(response(2,"请输入密码",$info)); //密码文件检测   
-        }
-        for($i = 0;$i <= 10;$i++) {
-            $json=json_decode(request('https://www.lanzoui.com/ajaxm.php', 'POST', array('action'=>'downprocess', 'sign'=>$sign, 'p'=>$pw), $headers,"data"),true); //POST请求API获取下载地址
-            if($json) break;
-        }
-	    $info["url"] = $json["dom"].'/file/'.$json["url"];
+        $json["zt"] = 1;
+	    e($json,$info);
+    } else {  //有密码（或遇到其他错误
+        geturl($js2 ?? $js,$info,$error,$headers,$pw);
     }
-	e($json,$info);
 }
 
 //使用电脑UA获取
@@ -138,35 +128,15 @@ function pc(){
     }
     //$info["avatar"]=preg_match('/(?<=background:url\().+(?=\))/',$data,$fileavatar) ? $fileavatar[0] : null; //获取用户头像
     
-    //密码文件检测
-    if(strpos($js,"document.getElementById('pwd').value;") && !$pw) {
-        $info["url"] = null;
-        exit(response(2,"请输入密码",$info)); 
-    }
-    
     $error=$html->find('.off',0)->plaintext ?? "获取失败";
     $src=$html->find('iframe',0)->src ?? null;
     
     if($src) { //无密码
         $data2 = request("https://www.lanzoui.com$src")["data"];
-        $a = preg_match("/(?<=')(?!=|post|sign|json)[a-zA-Z0-9]{4}(?=')/", $data2, $a) ? $a[0] : "";
-        $b = preg_match("/(?<=')[0-9]{1}(?=')/", $data2, $b) ? $b[0] : "";
-        $sign = sign($data2);
+        geturl($data2,$info,$error,$headers,$pw);
     } else {
-        $a = "";
-        $b = "";
-        $sign = sign($js);
+        geturl($js,$info,$error,$headers,$pw);
     }
-    
-    if(!$sign) {
-        exit(response(-2,$error,null)); //错误
-    }
-	for($i = 0;$i <= 10;$i++) {
-	    $json=json_decode(request('https://www.lanzoui.com/ajaxm.php',"post",array('action' => 'downprocess', 'sign' => $sign, 'p' => $pw, 'websign' => $b, 'websignkey' => $a),$headers,"data"),true); //POST请求API获取下载地址
-	    if($json) break;
-    }
-	$info["url"] = $json["dom"].'/file/'.$json["url"];
-	e($json,$info);
 }
 
 //获取文件夹
@@ -310,7 +280,7 @@ function arrayToXml($arr,$dom=0,$item=0){
 function e($json,$info){
 	global $config,$fid;
 	
-    if($info["url"]) {
+    if($json["zt"] == 1) {
         
 	    if(isset($json["inf"]) && $json["inf"]) { 
 	        $info["name"] = $json["inf"]; //文件名
@@ -327,7 +297,7 @@ function e($json,$info){
 		     }
 		     
              if($config["cache"]){
-                  apcu_store("file$fid",$info,preg_match("/(?<=&e=)\d*(?=&)/",$url,$endtime) ? $endtime[0] - time() : $config["cacheexpired"]); //写入缓存
+                  apcu_store("file$fid",$info,$config["cacheexpired"]); //写入缓存
                   header("X-APCu-Cache: MISS");
              }
               
@@ -405,9 +375,17 @@ function request($url, $method = 'GET', $postdata = array(), $headers = array(),
     return $data[$responsetype] ?? $data; // 返回
 }
 
-//获取sign
-function sign($data) {
-    $data=preg_replace("/\/\/.*?|\/\*(?s)\*\/|function woio[\s\S]*?}/","",$data);
+//获取链接
+function geturl($data,$info,$error,$headers,$pw) {
+    $data = preg_replace("/\/\/.*|\/\*[\s\S]*\*\/|function woio[\s\S]*?}/","",$data);
+    
+    // 密码文件检测
+    if(strpos($data,"document.getElementById('pwd').value;") && !$pw) {
+        $info["url"] = null;
+        exit(response(2,"请输入密码",$info)); 
+    }
+    
+    // 获取 sign
     if(preg_match("/(?<='sign':')\w+?(?=')/",$data,$a)) {
         $sign = $a[0];
     }
@@ -424,9 +402,20 @@ function sign($data) {
         $maxIndex = array_search(max($lengths),$lengths);
         $sign = $a[0][$maxIndex];
     } else {
-        $sign = false;
+        $sign = null;
     }
-    return $sign;
+    
+    // 获取链接
+    if($sign) {
+        $a = preg_match("/(?<=')[0-9]{1}(?=')/", $data, $a) ? $a[0] : "";
+        $b = preg_match("/(?<=')(?!=|post|sign|json)[a-zA-Z0-9]{4}(?=')/", $data, $b) ? $b[0] : "";
+        $fileid = preg_match("/(?<=file=)\d+/", $data,$fileid) ? $fileid[0] : "";
+        $json = json_decode(request("https://www.lanzoui.com/ajaxm.php?file=$fileid","post",array('action' => 'downprocess', 'sign' => $sign, 'p' => $pw, 'websign' => $a, 'websignkey' => $b),$headers,"data"),true); //POST请求API获取下载地址
+        $info["url"] = $json["dom"].'/file/'.$json["url"];
+	    e($json,$info);
+    } else {
+        response(-2,$error,null); //错误
+    }
 }
 
 //将上传时间转为 yyyy-mm-dd 格式
