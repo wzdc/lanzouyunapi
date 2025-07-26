@@ -26,8 +26,8 @@
 | user | 分享者 | String |
 | time | 上传时间 | String |
 | desc | 描述 | String |
-| icon | 文件图标 | Sring |
-| avatar | 分享者头像 | Sring |
+| icon | 文件图标 | String |
+| avatar | 分享者头像 | String |
 | url | 链接 | String |
 
 ## 文件夹信息
