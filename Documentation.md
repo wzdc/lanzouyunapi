@@ -4,9 +4,9 @@
 请求示例：https://vercel-chi-kohl.vercel.app/lanzouyunapi.php?url=wzdc
 | 参数 | 必填 | 默认 | 说明 |
 | -- | -- | -- | -- |
-| url | 是 | | 蓝奏云链接或ID |
+| url | 是 | | 蓝奏云链接或路径 |
 | pw | 否 | | 密码 |
-| type | 否 | json | 返回的数据类型(可选值: text、json、xml、down) |
+| type | 否 | json | 返回的数据类型(可选值: json、xml、down) |
 | page | 否 | 1 | 页数 |
 
 # 返回
@@ -20,16 +20,21 @@
 ## 文件信息
 | 参数 | 说明 | 数据类型 |
 | -- | -- | -- |
+| fid | 文件ID | int |
 | name | 文件名 | String |
 | size | 文件大小 | String |
 | user | 分享者 | String |
-| desc | 描述 | String |
 | time | 上传时间 | String |
+| desc | 描述 | String |
+| icon | 文件图标 | Sring |
+| avatar | 分享者头像 | Sring |
 | url | 链接 | String |
 
 ## 文件夹信息
 | 参数 | 说明 | 数据类型 |
 | -- | -- | -- |
+| fid | 文件夹ID | int |
+| uid | 分享者用户ID | int |
 | name | 文件夹名称 | String |
 | desc | 文件夹描述 | String |
 | folder | 子文件夹列表 | Array |
@@ -39,14 +44,14 @@
 ### 子文件夹列表
 | 参数 | 说明 | 数据类型 |
 | -- | -- | -- |
-| id | 子文件夹ID | String |
-| name | 子文件夹名称 | String |
-| desc | 子文件夹描述 | String |
+| id | 分享路径 | String |
+| name | 名称 | String |
+| desc | 描述 | String |
 
 ### 文件列表
 | 参数 | 说明 | 数据类型 |
 | -- | -- | -- |
-| id | id | String |
+| id | 分享路径 | String |
 | ad | 推广文件 | Boolean |
 | name | 文件名 | String |
 | size | 文件大小 | String |
@@ -67,4 +72,3 @@
 # 其他说明
 1. 遇到无法解析请附带无法解析的文件分享链接[提交issues](https://github.com/wzdc/lanzouyunapi/issues)
 2. 文件夹查看多页内容需要等待一定时间才能查看更多页内容（官方限制）。对于页数较多的文件夹，缓存可以解决等待时间长的问题。
-3. 文件夹不支持`type=text`
