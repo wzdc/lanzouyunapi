@@ -2,31 +2,18 @@
 /*
  * @package lanzouyunapi
  * @author wzdc
- * @version 1.3.1
- * @Date 2025-7-26
+ * @version 1.3.2
+ * @Date 2025-7-27
  * @link https://github.com/wzdc/lanzouyunapi
  */
 
 // 允许跨站请求
 header('Access-Control-Allow-Origin: *'); 
-if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
-    header('Access-Control-Allow-Methods: GET, POST, OPTIONS, HEAD');
-    header("Access-Control-Allow-Headers: *");
-    header("Access-Control-Max-Age: 2592000");
-    exit;
-}
+header('Access-Control-Allow-Methods: GET, POST, HEAD');
+header("Access-Control-Allow-Headers: *");
+header("Access-Control-Max-Age: 2592000");
 
-// 配置 （开启缓存需要安装apcu扩展）
 include 'lanzouyunapiconfig.php'; // 导入配置文件
-$config = $config + array(
-    "cache"        => false,  // 文件链接缓存
-    "cacheexpired" => 900,  // 文件链接缓存时间（秒，当无法获取到过期时间时使用）
-    "foldercache"  => false,  // 缓存文件夹参数
-    "auto-switch"  => true,  // 自动切换获取方式
-    "mode"        => "pc",  // 请求方式 (pc/mobile)
-    "experimental" => false, // 实验性功能（会带来便利和不稳定性）
-);
-
 error_reporting(0); // 不显示错误
 if(!isset($_REQUEST["url"]) || !$_REQUEST["url"]) exit(response(-4,"缺少参数",null));
 $id = preg_match("/^(?:https?:\/\/)?[aA-zZ0-9.-]+\.com\/(?:tp\/)?(.+)/",$_REQUEST["url"],$id) ? $id[1] : $_REQUEST["url"]; // 路径或链接
