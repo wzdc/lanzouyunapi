@@ -27,7 +27,7 @@
 ## 返回数据
 ```json
 {
-  "code": 0,
+  "code": 200,
   "msg": "成功",
   "data": {
     "fid": 31176240,
@@ -38,7 +38,7 @@
     "desc": "",
     "icon": null,
     "avatar": null,
-    "url": "https://c1026.dmpdmp.com/b68be6c59cc4d408bb5a5049fc2b6ec5/6884ceda/2020/10/18/954f63d15176aba369a518d38eeb2a0f.apk?fn=com.i0b47a46d08a1f3db.apk"
+    "url": "https://c1026.dmpdmp.com/6e491788d2d8ea01825ae92d419a5cd1/68ef6063/2020/10/18/954f63d15176aba369a518d38eeb2a0f.apk?fn=com.i0b47a46d08a1f3db.apk"
   }
 }
 ```
