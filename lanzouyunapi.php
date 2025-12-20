@@ -2,8 +2,8 @@
 /*
  * @package lanzouyunapi
  * @author wzdc
- * @version 1.3.3
- * @Date 2025-10-15
+ * @version 1.3.4
+ * @Date 2025-12-21
  * @link https://github.com/wzdc/lanzouyunapi
  */
 
@@ -19,7 +19,7 @@ if($_SERVER['REQUEST_METHOD'] == "OPTIONS") {
     exit("Method Not Allowed"); // 不支持的请求方式
 }
 
-//error_reporting(0); // 不显示错误
+error_reporting(0); // 不显示错误
 include 'lanzouyunapiconfig.php'; // 导入配置文件
 $params = array_merge($_GET, $_POST); // 优先使用POST参数
 if(empty($params["url"])) exit(response(400,"缺少参数",null));
@@ -80,7 +80,7 @@ function mobile() {
         $url = preg_match("/(?<=')\?.+(?=')/",$js,$url) ? $url[0] : null;
     }
     
-    $error = preg_match("/<\/div><\/div>(.+)<\/div>/",$data,$error) ? $error[1] : "获取失败";
+    $error = preg_match("/<\/div><\/div>(.+)<\/div>/",$data,$error) ? strip_tags($error[1]) : "获取失败";
     if(!$js) exit(response(501,$error,null));
     $fileinfo = preg_match('/<meta\s+name=["\']description["\']\s+content=["\'](.*?)["\']/',$data,$fileinfo) ? $fileinfo[1] : "";
     
@@ -113,11 +113,19 @@ function mobile() {
     $info["icon"] = preg_match('/https?:\/\/image\.woozooo\.com\/image\/ico\/.+?(?=\))/',$data,$fileicon) ? $fileicon[0] : null; // 文件图标 默认图标：https://assets.woozooo.com/assets/images/type/(ext)_max.gif
     $info["avatar"] = preg_match('/https?:\/\/image\.woozooo\.com\/image\/userimg\/.+?(?=\))/',$data,$fileavatar) ? $fileavatar[0] : null; // 分享者头像
     
-    if($url) { // 无密码
+    if($url) {
+        $info["url"] = preg_match("/(?<=')https?:\/\/.+(?=')/",$datar,$dom) ? $dom[0].$url : null; // 获取链接
+    } else if(preg_match("/appitem\s*=\s*'(.+)';/",$js,$url)) {
+        $info["url"] = $url[1];
+    }
+    if(isset($info["url"])) { // 无密码
         $fileid = preg_match('/(?<=\?f=)\d+/',$datar,$fileid) ? (int)$fileid[0] : null; // 获取文件ID
-        $dom = preg_match("/(?<=')https?:\/\/.+(?=')/",$datar,$dom) ? $dom[0] : null; // 获取链接
         $info = array("fid" => $fileid) + $info; // 将文件ID放到最前
-        $info["url"] = $dom.$url; // 拼接下载链接
+	    e($info); // 获取文件直链
+    } else if(preg_match("/appitem\s*=\s*'(.+)';/",$js,$url)) {
+        $fileid = preg_match('/(?<=\?f=)\d+/',$datar,$fileid) ? (int)$fileid[0] : null; // 获取文件ID
+        $info = array("fid" => $fileid) + $info; // 将文件ID放到最前
+        $info["url"] = $url[1];
 	    e($info); // 获取文件直链
     } else { // 有密码
         geturl($js,$info,$error,$pw);
@@ -130,7 +138,7 @@ function pc() {
     $data = preg_replace('/<!--.*?-->/s', '', request("https://www.lanzoui.com/$id","GET",null,$desktopua,"data",$ch));
     if(!$data) exit(response(500,"获取失败",null));
     $js = preg_match_all('/<script\b[^>]*>(.*?)<\/script>/is', $data, $js) ? trim(implode("\n", $js[1])) : "";
-    $error = preg_match("/<\/div><\/div>(.+)<\/div>/",$data,$error) ? $error[1] : "获取失败";
+    $error = preg_match("/<\/div><\/div>(.+)<\/div>/",$data,$error) ? strip_tags($error[1]) : "获取失败";
     if(strpos($js,"/filemoreajax.php")) exit(folder($data,$js)); // 是否为文件夹
     if(preg_match('/<iframe\b[^>]* src="(.+?)"/',$data,$src)) { // 无密码
         $data2 = request("https://www.lanzoui.com".$src[1],"GET",null,$desktopua,"data",$ch);
@@ -141,7 +149,7 @@ function pc() {
     
     $info["name"] = preg_match('/<div class="n_box_3fn" [^>]+>(.*?)<\/div>/',$data,$filename) // 新版页面
                   || preg_match('/<div style="font[^>]+>(.*?)<\/div>/',$data,$filename) // 旧版页面
-                  || preg_match('/class="b"><span>(.*?)</',$data,$filename)
+                  || preg_match('/class="b">.*<span>(.*?)</',$data,$filename)
                   ? htmlspecialchars_decode($filename[1]) : null; // 获取文件名
                   
     $info["size"] = preg_match('/(?:文件)?大小：(.*?)(?:\||$)/',$fileinfo,$filesize) // 通用
@@ -234,7 +242,7 @@ function folder($data,$js) {
             $info["folder"][] = array(
                 "id"   => preg_match("/(?<=href=\"\/).*?(?=\")/",$f,$fi) ? $fi[0] : null, //ID
                 "name" => preg_match("/(?<=filename\">|<a href=\"\/".$fi[0]."\">).+?(?=<)/",$f,$fn) ? htmlspecialchars_decode($fn[0]) : null, //名称
-                "desc" => preg_match("/(?<=filesize\">)[\s\S]*?(?=<)/",$f,$fd) ? htmlspecialchars_decode($fd[0]) : null, //描述
+                "desc" => preg_match("/(?:filesize|pc-folderlinkdes)\">([\s\S]*?)</",$f,$fd) ? htmlspecialchars_decode($fd[1]) : null, //描述
             );
         }
     }
@@ -250,7 +258,7 @@ function folder($data,$js) {
         exit(response(401,"请输入密码",$info));
     }
     
-    if($config["experimental"] && $page == 2) {
+    if($page == 2) {
         $parameter["pg"] = 0;
     } else if($page != 1) {
         sleep($page);
@@ -318,17 +326,31 @@ function arrayToXml($arr,$dom=0,$item=0){
 // 获取直链
 function e($info) {
 	global $config,$cachekey,$desktopua,$mobileua;
-	$desktopua["cookie"] = "cookie: down_ip=1; expires=Fri, 14-Nov-2025 07:44:10 GMT; path=/; domain=.lanrar.com;";
+	$desktopua["cookie"] = "cookie: down_ip=1";
 	$ch = curl_init();
 	$requestpc = request($info["url"],"GET",null,$desktopua,"all",$ch);
 	$url = $requestpc["info"]["redirect_url"];
 
 	if(preg_match("/arg1='(.+?)'/", $requestpc["data"], $arg)) {
-	    $desktopua["cookie"] .= "acw_sc__v2=".acw_sc_v2_simple($arg[1]).";";
+	    $desktopua["cookie"] .= "; acw_sc__v2=".acw_sc_v2_simple($arg[1]);
 	    $url = $requestpc = request($info["url"],"GET",null,$desktopua,"info",$ch)["redirect_url"];
 	}
 	
-	// 尝试使用手机UA获取
+	// 人机验证
+	/*if(preg_match("/file':'(.+?)'/", $requestpc["data"], $file) && preg_match("/sign':'(.+?)'/", $requestpc["data"], $sign)) {
+        $post = array(
+            "file" => $file,
+            "el" => preg_match('/class="submit">\n.+?down_r\((\d)\);/' ,$html, $el) ? $el[1] : 2,
+            "sign" => $sign,
+        );
+        sleep(1);
+        $json = json_decode(request("https://".parse_url($info["url"], PHP_URL_HOST)."/file/ajaxm.php","post",$post,$desktopua,"data",$ch),true);
+        if (filter_var($json["url"], FILTER_VALIDATE_URL) !== false) {
+            $url = $json["url"];
+        }
+    }*/
+	
+	// 使用手机UA获取
 	if(!$url) {
 	    $mobileua["cookie"] = $desktopua["cookie"];
 	    $request = request($info["url"],"GET",null,$mobileua,"all",$ch);
@@ -336,6 +358,13 @@ function e($info) {
 	        $url = $a[1];
 	    } else {
 	        $url = $request["info"]["redirect_url"];
+	        $prefix = "itms-services://";
+	        if (substr($url, 0, strlen($prefix)) === $prefix) { // ipa文件链接获取
+	            preg_match("/&url=(.+)/", $url, $plist);
+	            $xml = request($plist[1],"GET",null,$mobileua,"data");
+	            preg_match("/<\!\[CDATA\[(.+)\]\]>/", $xml, $url);
+	            $url = $url[1];
+	        }
 	    }
 	}
 	
