@@ -2,8 +2,8 @@
 /*
  * @package lanzouyunapi
  * @author wzdc
- * @version 1.3.4
- * @Date 2025-12-21
+ * @version 1.3.5
+ * @Date 2026-03-23
  * @link https://github.com/wzdc/lanzouyunapi
  */
 
@@ -19,7 +19,7 @@ if($_SERVER['REQUEST_METHOD'] == "OPTIONS") {
     exit("Method Not Allowed"); // 不支持的请求方式
 }
 
-error_reporting(0); // 不显示错误
+//error_reporting(0); // 不显示错误
 include 'lanzouyunapiconfig.php'; // 导入配置文件
 $params = array_merge($_GET, $_POST); // 优先使用POST参数
 if(empty($params["url"])) exit(response(400,"缺少参数",null));
@@ -84,6 +84,8 @@ function mobile() {
     if(!$js) exit(response(501,$error,null));
     $fileinfo = preg_match('/<meta\s+name=["\']description["\']\s+content=["\'](.*?)["\']/',$data,$fileinfo) ? $fileinfo[1] : "";
     
+    $info["fid"] = preg_match('/(?<=\?f=)\d+/',$datar,$fileid) ? (int)$fileid[0] : null; // 文件ID
+    
     $info["name"] = $data2 && (preg_match('/<title>(.+)<\/title>/',$data2,$filename) 
                   || preg_match('/<div class="md">(.+) <span class="mtt">/',$data2,$filename)) 
                   || preg_match('/<div class="(?:md|appname)">(.*?) ?</',$data,$filename) 
@@ -110,23 +112,15 @@ function mobile() {
                   ? htmlspecialchars_decode(trim(strip_tags(str_replace("<br /> ","\n",$filedesc[1])))) : ""; // 文件描述
     
     //$info["uid"] = $data2 && preg_match("/uid':'(\d+)'/",$data2,$uid) ? $uid[1] : null; // 分享者ID
-    $info["icon"] = preg_match('/https?:\/\/image\.woozooo\.com\/image\/ico\/.+?(?=\))/',$data,$fileicon) ? $fileicon[0] : null; // 文件图标 默认图标：https://assets.woozooo.com/assets/images/type/(ext)_max.gif
-    $info["avatar"] = preg_match('/https?:\/\/image\.woozooo\.com\/image\/userimg\/.+?(?=\))/',$data,$fileavatar) ? $fileavatar[0] : null; // 分享者头像
+    $info["icon"] = preg_match('/https?:\/\/.+\/image\/ico\/.+?(?=\))/',$data,$fileicon) ? $fileicon[0] : null; // 文件图标 默认图标：https://assets.woozooo.com/assets/images/type/(ext)_max.gif
+    $info["avatar"] = preg_match('/https?:\/\/.+\/image\/userimg\/.+?(?=\))/',$data,$fileavatar) ? $fileavatar[0] : null; // 分享者头像
     
-    if($url) {
-        $info["url"] = preg_match("/(?<=')https?:\/\/.+(?=')/",$datar,$dom) ? $dom[0].$url : null; // 获取链接
-    } else if(preg_match("/appitem\s*=\s*'(.+)';/",$js,$url)) {
+    if(preg_match("/(?<=')https?:\/\/.+(?=')/",$datar,$dom)) { // 无密码
+        $info["url"] = $dom[0].$url;
+        e($info); // 获取文件直链
+    } else if(preg_match("/appitem\s*=\s*'(.+)';/",$js,$url)) { // ipa文件
         $info["url"] = $url[1];
-    }
-    if(isset($info["url"])) { // 无密码
-        $fileid = preg_match('/(?<=\?f=)\d+/',$datar,$fileid) ? (int)$fileid[0] : null; // 获取文件ID
-        $info = array("fid" => $fileid) + $info; // 将文件ID放到最前
-	    e($info); // 获取文件直链
-    } else if(preg_match("/appitem\s*=\s*'(.+)';/",$js,$url)) {
-        $fileid = preg_match('/(?<=\?f=)\d+/',$datar,$fileid) ? (int)$fileid[0] : null; // 获取文件ID
-        $info = array("fid" => $fileid) + $info; // 将文件ID放到最前
-        $info["url"] = $url[1];
-	    e($info); // 获取文件直链
+	    e($info);
     } else { // 有密码
         geturl($js,$info,$error,$pw);
     }
@@ -170,8 +164,8 @@ function pc() {
                   || preg_match('/(?<=文件描述：<\/span><br>\n).+(?=\t)/',$data,$filedesc) // 旧版页面
                   ? htmlspecialchars_decode(strip_tags(str_replace("<br /> ","\n",$filedesc[0]))) : ""; // 获取文件描述
     
-    $info["icon"] = preg_match('/https?:\/\/image\.woozooo\.com\/image\/ico\/.+?(?=")/',$data,$fileicon) ? $fileicon[0] : null; // 获取文件图标 默认图标：https://assets.woozooo.com/assets/images/type/(ext)_max.gif
-    $info["avatar"] = preg_match('/https?:\/\/image\.woozooo\.com\/image\/userimg\/.+?(?=\))/',$data,$fileavatar) ? $fileavatar[0] : null; // 获取分享者头像
+    $info["icon"] = preg_match('/https?:\/\/.+\/image\/ico\/.+?(?=")/',$data,$fileicon) ? $fileicon[0] : null; // 获取文件图标 默认图标：https://assets.woozooo.com/assets/images/type/(ext)_max.gif
+    $info["avatar"] = preg_match('/https?:\/\/.+\/image\/userimg\/.+?(?=\))/',$data,$fileavatar) ? $fileavatar[0] : null; // 获取分享者头像
 
     geturl($js,$info,$error,$pw);
 }
@@ -404,7 +398,7 @@ function f($info,$parameter) {
                     "name" => htmlspecialchars_decode($v["name_all"]), // 文件名 
                     "size" => $v["size"],  // 文件大小
                     "time" => $v["time"],  // 上传时间
-                    "icon" => $v["p_ico"] ? "https://image.woozooo.com/image/ico/".$v["ico"]."?x-oss-process=image/auto-orient,1/resize,m_fill,w_100,h_100/format,png" : null, // 文件图标 默认图标："https://assets.woozooo.com/assets/images/(新: type,旧: filetype)/".$v["icon"].".gif"
+                    "icon" => $v["p_ico"] ? "https://image.dmpdmp.com/image/ico/".$v["ico"]."?x-oss-process=image/auto-orient,1/resize,m_fill,w_100,h_100/format,png" : null, // image.woozooo.com 文件图标 默认图标："https://assets.woozooo.com/assets/images/(新: type,旧: filetype)/".$v["icon"].".gif"
                 );
             }
         }
@@ -531,7 +525,7 @@ function Text_conversion_time($str) {
     }
 }
 
-// acw_sc_v2生成（致谢：https://github.com/hanximeng/LanzouAPI/blob/master/index.php#L242）
+// acw_sc_v2生成（https://github.com/hanximeng/LanzouAPI/blob/master/index.php#L242）
 function acw_sc_v2_simple($arg1) {
     $posList = [15,35,29,24,33,16,1,38,10,9,19,31,40,27,22,23,25,13,6,11,39,18,20,8,14,21,32,26,2,30,7,4,17,5,3,28,34,37,12,36];
     $mask = '3000176000856006061501533003690027800375';
