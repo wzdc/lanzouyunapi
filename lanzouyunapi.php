@@ -2,8 +2,8 @@
 /*
  * @package lanzouyunapi
  * @author wzdc
- * @version 1.3.5
- * @Date 2026-03-23
+ * @version 1.3.6
+ * @Date 2026-06-12
  * @link https://github.com/wzdc/lanzouyunapi
  */
 
@@ -19,7 +19,7 @@ if($_SERVER['REQUEST_METHOD'] == "OPTIONS") {
     exit("Method Not Allowed"); // 不支持的请求方式
 }
 
-//error_reporting(0); // 不显示错误
+error_reporting(0); // 不显示错误
 include 'lanzouyunapiconfig.php'; // 导入配置文件
 $params = array_merge($_GET, $_POST); // 优先使用POST参数
 if(empty($params["url"])) exit(response(400,"缺少参数",null));
@@ -29,8 +29,9 @@ $type = $params["type"] ?? ""; //需要响应的数据类型
 $page = (isset($params["page"]) && (int)$params["page"] > 1) ? (int)$params["page"] : 1; //文件夹页数
 $cachekey = explode('?', $id)[0]; // 缓存键
 $ch = curl_init();
-$mobileua[] = "User-Agent: Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/136.0.0.0 Mobile Safari/537.36";
-$desktopua[] = "User-Agent: Mozilla/5.0 (Windows NT 6.1; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/87.0.4280.88 Safari/537.36";
+$cookie = "";
+$mobileua = "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/136.0.0.0 Mobile Safari/537.36";
+$desktopua = "Mozilla/5.0 (Windows NT 6.1; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/87.0.4280.88 Safari/537.36";
 
 //读取缓存
 if($config["cache"] && $data3=apcu_fetch("file".$cachekey)) {
@@ -51,8 +52,12 @@ if($config["cache"] && $data3=apcu_fetch("file".$cachekey)) {
 
 //使用手机UA获取
 function mobile() { 
-    global $id,$pw,$ch,$mobileua;
+    global $id,$pw,$ch,$mobileua,$cookie;
     $data = preg_replace('/<!--.*?-->/s', '', request("https://www.lanzoui.com/$id","GET",null,$mobileua,"data",$ch));
+    if(preg_match("/arg1='(.+?)'/", $data, $arg)) {
+	    $cookie = "acw_sc__v2=".acw_sc_v2_simple($arg[1]).";";
+	    $data = preg_replace('/<!--.*?-->/s', '', request("https://www.lanzoui.com/$id","GET",null,$mobileua,"data",$ch));
+	}
     if(!$data) exit(response(500,"获取失败",null)); 
     $js = preg_match_all('/<script\b[^>]*>(.*?)<\/script>/is', $data, $js) ? trim(implode("\n", $js[1])) : "";
     if(strpos($js,"/filemoreajax.php")) exit(folder($data,$js)); //是否为文件夹
@@ -128,8 +133,12 @@ function mobile() {
 
 //使用电脑UA获取
 function pc() { 
-    global $id,$pw,$ch,$desktopua;
+    global $id,$pw,$ch,$desktopua,$cookie;
     $data = preg_replace('/<!--.*?-->/s', '', request("https://www.lanzoui.com/$id","GET",null,$desktopua,"data",$ch));
+    if(preg_match("/arg1='(.+?)'/", $data, $arg)) {
+	    $cookie = "acw_sc__v2=".acw_sc_v2_simple($arg[1]).";";
+	    $data = preg_replace('/<!--.*?-->/s', '', request("https://www.lanzoui.com/$id","GET",null,$desktopua,"data",$ch));
+	}
     if(!$data) exit(response(500,"获取失败",null));
     $js = preg_match_all('/<script\b[^>]*>(.*?)<\/script>/is', $data, $js) ? trim(implode("\n", $js[1])) : "";
     $error = preg_match("/<\/div><\/div>(.+)<\/div>/",$data,$error) ? strip_tags($error[1]) : "获取失败";
@@ -194,7 +203,7 @@ function folder($data,$js) {
     
     $info = array("fid" => (int)$parameter["fid"],"uid" => (int)$parameter["uid"]);
 
-    //获取名称
+    // 获取名称
     if(preg_match("/document\.title\s*=\s*(.*);/",$js,$var) && preg_match("/".$var[1]."\s*=\s*'(.*)'/",$js,$name)) {
         $info["name"] = htmlspecialchars_decode($name[1]); 
     } else if(preg_match("/class=\"b\">(.*?)</",$data,$name)) {
@@ -209,25 +218,33 @@ function folder($data,$js) {
         $info["name"] = null;
     }
     
-    //获取描述
+    // 获取描述
     if(preg_match("/(?<=说<\/span>)[\s\S]*?(?=<\/div>)/",$data,$d) && $d[0]) {
-        $info["desc"] = strip_tags(htmlspecialchars_decode($d[0]));
+        $info["desc"] = htmlspecialchars_decode(strip_tags($d[0]));
     } else if(preg_match("/(?<=<span id=\"filename\">)[\s\S]*?(?=<\/div>)/",$data,$d) && $d[0]) {
-        $info["desc"] = strip_tags(htmlspecialchars_decode($d[0]));
+        $info["desc"] = htmlspecialchars_decode(strip_tags($d[0]));
     } else if(preg_match('/(?<=user-radio-0"><\/div>)[\s\S]*?(?=<\/div>)/',$data,$d) && $d[0]) {
-        $info["desc"] = strip_tags(htmlspecialchars_decode($d[0])); 
+        $info["desc"] = htmlspecialchars_decode(strip_tags($d[0])); 
     } else {
         $info["desc"] = '';
     }
     
-    //获取分享者
+    // 获取分享者
     /*if(preg_match("/(?<=user-name\">).+?(?=<)/",$data,$u) && $u[0]){
         $info["user"] = $u[0];
     } else {
         $info["user"] = null;
     }*/
-            
-    //获取子文件夹
+    
+    // 获取文件夹创建日期
+    /*if(preg_match("/(?<=rets\">).+?(?=<)/",$data,$date) && $date[0]){
+        $info["date"] = $date[0];
+    } else {
+        $info["date"] = null;
+    }*/
+    
+   
+    // 获取子文件夹
     $folderarr = preg_split('/<div class="pc-folderlink">|<div class="mbx mbxfolder">/', $data);
     $info["folder"] = [];
     if($folderarr) {
@@ -319,16 +336,17 @@ function arrayToXml($arr,$dom=0,$item=0){
 
 // 获取直链
 function e($info) {
-	global $config,$cachekey,$desktopua,$mobileua;
-	$desktopua["cookie"] = "cookie: down_ip=1";
+	global $config,$cachekey,$desktopua,$mobileua,$cookie;
+	$cookie .= "down_ip=1;";
 	$ch = curl_init();
 	$requestpc = request($info["url"],"GET",null,$desktopua,"all",$ch);
 	$url = $requestpc["info"]["redirect_url"];
 
-	if(preg_match("/arg1='(.+?)'/", $requestpc["data"], $arg)) {
+	/*if(preg_match("/arg1='(.+?)'/", $requestpc["data"], $arg)) {
 	    $desktopua["cookie"] .= "; acw_sc__v2=".acw_sc_v2_simple($arg[1]);
+	    $mobileua["cookie"] = $desktopua["cookie"];
 	    $url = $requestpc = request($info["url"],"GET",null,$desktopua,"info",$ch)["redirect_url"];
-	}
+	}*/
 	
 	// 人机验证
 	/*if(preg_match("/file':'(.+?)'/", $requestpc["data"], $file) && preg_match("/sign':'(.+?)'/", $requestpc["data"], $sign)) {
@@ -346,7 +364,6 @@ function e($info) {
 	
 	// 使用手机UA获取
 	if(!$url) {
-	    $mobileua["cookie"] = $desktopua["cookie"];
 	    $request = request($info["url"],"GET",null,$mobileua,"all",$ch);
 	    if($request["data"] && preg_match('/<a\s+href="(.+?)"/',$request["data"],$a)) {
 	        $url = $a[1];
@@ -417,7 +434,8 @@ function f($info,$parameter) {
 }
 
 //请求
-function request($url, $method = 'GET', $postdata = array(), $headers = array(),$responsetype = "all",$curl = null) {
+function request($url, $method = 'GET', $postdata = array(), $ua = null,$responsetype = "all",$curl = null) {
+    global $cookie;
     
     $headers[]  =  "Referer: https://www.lanzoui.com/";
     $headers[]  =  "Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9";
@@ -444,7 +462,9 @@ function request($url, $method = 'GET', $postdata = array(), $headers = array(),
     curl_setopt($curl, CURLOPT_HTTPHEADER, $headers); // 设置请求头信息
     curl_setopt($curl, CURLOPT_HEADER, false); //如果需返回头部信息，则设置此参数为 true
     curl_setopt($curl, CURLOPT_RETURNTRANSFER, true); //设置是否将响应结果以字符串形式返回
-    // 开启 SSL 验证
+    curl_setopt($curl, CURLOPT_USERAGENT, $ua); // 设置UA
+    if($cookie) curl_setopt($curl, CURLOPT_COOKIE, $cookie); // 设置cookie
+    // SSL 验证
     curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, false);
     curl_setopt($curl, CURLOPT_SSL_VERIFYHOST, 0);
     curl_setopt($curl, CURLOPT_NOBODY, ($responsetype == "info")); // 禁止下载响应体
