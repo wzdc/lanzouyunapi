@@ -74,7 +74,7 @@ function mobile() {
             ) || 
             preg_match('/(?<=tp\/)[\w?&=]+/', $data, $id2) || 
             (
-               ($redirecturl = request("https://www.lanzoui.com/$id","GET",null,["User-Agent: MicroMessenger"],"info",$ch)["redirect_url"]) &&
+               ($redirecturl = request("https://www.lanzoui.com/$id","GET",null,"MicroMessenger","info",$ch)["redirect_url"]) &&
                preg_match('/(?<=i\.com\/)[\w?&=]+/',request($redirecturl, "GET", null, $mobileua, "info")["redirect_url"],$id2)
             )
         ) &&
