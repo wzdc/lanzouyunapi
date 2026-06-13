@@ -2,7 +2,7 @@
 /*
  * @package lanzouyunapi
  * @author wzdc
- * @version 1.3.6
+ * @version 1.3.62
  * @Date 2026-06-12
  * @link https://github.com/wzdc/lanzouyunapi
  */
@@ -53,11 +53,7 @@ if($config["cache"] && $data3=apcu_fetch("file".$cachekey)) {
 //使用手机UA获取
 function mobile() { 
     global $id,$pw,$ch,$mobileua,$cookie;
-    $data = preg_replace('/<!--.*?-->/s', '', request("https://www.lanzoui.com/$id","GET",null,$mobileua,"data",$ch));
-    if(preg_match("/arg1='(.+?)'/", $data, $arg)) {
-	    $cookie = "acw_sc__v2=".acw_sc_v2_simple($arg[1]).";";
-	    $data = preg_replace('/<!--.*?-->/s', '', request("https://www.lanzoui.com/$id","GET",null,$mobileua,"data",$ch));
-	}
+    $data = preg_replace('/<!--.*?-->/s', '', request("https://www.lanzouf.com/$id","GET",null,$mobileua,"data",$ch));
     if(!$data) exit(response(500,"获取失败",null)); 
     $js = preg_match_all('/<script\b[^>]*>(.*?)<\/script>/is', $data, $js) ? trim(implode("\n", $js[1])) : "";
     if(strpos($js,"/filemoreajax.php")) exit(folder($data,$js)); //是否为文件夹
@@ -74,11 +70,11 @@ function mobile() {
             ) || 
             preg_match('/(?<=tp\/)[\w?&=]+/', $data, $id2) || 
             (
-               ($redirecturl = request("https://www.lanzoui.com/$id","GET",null,"MicroMessenger","info",$ch)["redirect_url"]) &&
-               preg_match('/(?<=i\.com\/)[\w?&=]+/',request($redirecturl, "GET", null, $mobileua, "info")["redirect_url"],$id2)
+               ($redirecturl = request("https://www.lanzouf.com/$id","GET",null,"MicroMessenger","info",$ch)["redirect_url"]) &&
+               $id2[0] = implode('/', array_slice(explode('/', request($redirecturl, "GET", null, $mobileua, "info")["redirect_url"]), 3))
             )
         ) &&
-        $data2 = preg_replace('/<!--.*?-->/s', '', request("https://www.lanzoui.com/tp/".$id2[0], "GET", null, $mobileua, "data", $ch))
+        $data2 = preg_replace('/<!--.*?-->/s', '', request("https://www.lanzouf.com/tp/".$id2[0], "GET", null, $mobileua, "data", $ch))
     ) {
         $datar = $data2;
         $js = preg_match_all('/<script\b[^>]*>(.*?)<\/script>/is', $data2, $js) ? trim(implode("\n", $js[1])) : null;
@@ -134,17 +130,13 @@ function mobile() {
 //使用电脑UA获取
 function pc() { 
     global $id,$pw,$ch,$desktopua,$cookie;
-    $data = preg_replace('/<!--.*?-->/s', '', request("https://www.lanzoui.com/$id","GET",null,$desktopua,"data",$ch));
-    if(preg_match("/arg1='(.+?)'/", $data, $arg)) {
-	    $cookie = "acw_sc__v2=".acw_sc_v2_simple($arg[1]).";";
-	    $data = preg_replace('/<!--.*?-->/s', '', request("https://www.lanzoui.com/$id","GET",null,$desktopua,"data",$ch));
-	}
+    $data = preg_replace('/<!--.*?-->/s', '', request("https://www.lanzouf.com/$id","GET",null,$desktopua,"data",$ch));
     if(!$data) exit(response(500,"获取失败",null));
     $js = preg_match_all('/<script\b[^>]*>(.*?)<\/script>/is', $data, $js) ? trim(implode("\n", $js[1])) : "";
     $error = preg_match("/<\/div><\/div>(.+)<\/div>/",$data,$error) ? strip_tags($error[1]) : "获取失败";
     if(strpos($js,"/filemoreajax.php")) exit(folder($data,$js)); // 是否为文件夹
     if(preg_match('/<iframe\b[^>]* src="(.+?)"/',$data,$src)) { // 无密码
-        $data2 = request("https://www.lanzoui.com".$src[1],"GET",null,$desktopua,"data",$ch);
+        $data2 = request("https://www.lanzouf.com".$src[1],"GET",null,$desktopua,"data",$ch);
         $js = preg_match('/https?:\/\/waf\.woozooo\.com\/pc\/.+\.js/',$data2,$jsurl) ? request($jsurl[0],"GET",null,$desktopua,"data") : $data2;
     }
     if(!$js) exit(response(501,$error,null));
@@ -404,7 +396,7 @@ function e($info) {
 //获取文件夹文件
 function f($info,$parameter) {
     global $config,$desktopua,$ch;
-    $json = json_decode(request('https://www.lanzoui.com/filemoreajax.php',"post",$parameter,$desktopua,"data",$ch),true); // 获取文件列表 zt状态码： 1成功 2没有文件 3密码错误 4参数无效或过期
+    $json = json_decode(request('https://www.lanzouf.com/filemoreajax.php',"post",$parameter,$desktopua,"data",$ch),true); // 获取文件列表 zt状态码： 1成功 2没有文件 3密码错误 4参数无效或过期
     curl_close($ch);
     if(is_array($json["text"])) {
         foreach ($json["text"] as $v) {
@@ -437,7 +429,7 @@ function f($info,$parameter) {
 function request($url, $method = 'GET', $postdata = array(), $ua = null,$responsetype = "all",$curl = null) {
     global $cookie;
     
-    $headers[]  =  "Referer: https://www.lanzoui.com/";
+    $headers[]  =  "Referer: https://www.lanzouf.com/";
     $headers[]  =  "Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9";
     $headers[]  =  "Accept-Encoding: gzip, deflate, br";
     $headers[]  =  "Accept-Language: zh-CN;q=0.9,zh-HK;q=0.8,zh-TW;q=0.7";
@@ -510,7 +502,7 @@ function geturl($data,$info,$error,$pw) {
     // 获取链接
     $websign = preg_match("/(?<=')[0-9]{1}(?=')/", $data, $websign) ? $websign[0] : "";
     $websignkey = preg_match("/(?<=')(?!=|post|sign|json)[a-zA-Z0-9]{4}(?=')/", $data, $websignkey) ? $websignkey[0] : "";
-    $json = json_decode(request("https://www.lanzoui.com/ajaxm.php?file=$fileid","post",array('action' => 'downprocess', 'sign' => $sign, 'p' => $pw, 'websign' => $websign, 'websignkey' => $websignkey),$desktopua,"data",$ch),true); // POST请求API获取下载地址
+    $json = json_decode(request("https://www.lanzouf.com/ajaxm.php?file=$fileid","post",array('action' => 'downprocess', 'sign' => $sign, 'p' => $pw, 'websign' => $websign, 'websignkey' => $websignkey),$desktopua,"data",$ch),true); // POST请求API获取下载地址
     if($json["zt"] == 1) {
         if(!empty($json["inf"])) { 
 	        $info["name"] = $json["inf"]; //文件名
