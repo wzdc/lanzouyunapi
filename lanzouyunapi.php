@@ -2,8 +2,8 @@
 /*
  * @package lanzouyunapi
  * @author wzdc
- * @version 1.3.62
- * @Date 2026-06-12
+ * @version 1.3.63
+ * @Date 2026-08-05
  * @link https://github.com/wzdc/lanzouyunapi
  */
 
@@ -329,16 +329,15 @@ function arrayToXml($arr,$dom=0,$item=0){
 // 获取直链
 function e($info) {
 	global $config,$cachekey,$desktopua,$mobileua,$cookie;
-	$cookie .= "down_ip=1;";
+	$cookie .= "down_ip=1";
 	$ch = curl_init();
 	$requestpc = request($info["url"],"GET",null,$desktopua,"all",$ch);
 	$url = $requestpc["info"]["redirect_url"];
 
-	/*if(preg_match("/arg1='(.+?)'/", $requestpc["data"], $arg)) {
-	    $desktopua["cookie"] .= "; acw_sc__v2=".acw_sc_v2_simple($arg[1]);
-	    $mobileua["cookie"] = $desktopua["cookie"];
-	    $url = $requestpc = request($info["url"],"GET",null,$desktopua,"info",$ch)["redirect_url"];
-	}*/
+	if(preg_match("/arg1='(.+?)'/", $requestpc["data"], $arg)) {
+	    $cookie .= "; acw_sc__v2=".acw_sc_v2_simple($arg[1]);
+	    $url = request($info["url"],"GET",null,$desktopua,"info",$ch)["redirect_url"];
+	}
 	
 	// 人机验证
 	/*if(preg_match("/file':'(.+?)'/", $requestpc["data"], $file) && preg_match("/sign':'(.+?)'/", $requestpc["data"], $sign)) {
