@@ -2,8 +2,8 @@
 /*
  * @package lanzouyunapi
  * @author wzdc
- * @version 1.3.63
- * @Date 2026-08-05
+ * @version 1.3.64
+ * @Date 2026-08-30
  * @link https://github.com/wzdc/lanzouyunapi
  */
 
@@ -123,7 +123,7 @@ function mobile() {
         $info["url"] = $url[1];
 	    e($info);
     } else { // 有密码
-        geturl($js,$info,$error,$pw);
+        geturl($js,$info,$error,$pw,$mobileua);
     }
 }
 
@@ -168,7 +168,7 @@ function pc() {
     $info["icon"] = preg_match('/https?:\/\/.+\/image\/ico\/.+?(?=")/',$data,$fileicon) ? $fileicon[0] : null; // 获取文件图标 默认图标：https://assets.woozooo.com/assets/images/type/(ext)_max.gif
     $info["avatar"] = preg_match('/https?:\/\/.+\/image\/userimg\/.+?(?=\))/',$data,$fileavatar) ? $fileavatar[0] : null; // 获取分享者头像
 
-    geturl($js,$info,$error,$pw);
+    geturl($js,$info,$error,$pw,$desktopua);
 }
 
 //获取文件夹
@@ -276,7 +276,7 @@ function response($code,$msg,$data) {
     global $config,$type;
     
     // 切换获取方式
-    if($config["auto-switch"] && !in_array($code,array(400,401,200,201)) && $msg!="密码不正确") {
+    if($config["auto-switch"] && !in_array($code,array(400,401,200,201)) && $msg != "密码错误") {
         $config["auto-switch"] = 0;
         if($config["mode"] == "mobile") pc();
         else mobile();
@@ -369,8 +369,6 @@ function e($info) {
 	        }
 	    }
 	}
-	
-	curl_close($ch);
    
 	if(!$url) {
 	    response(201,"获取链接失败",$info); 
@@ -396,7 +394,6 @@ function e($info) {
 function f($info,$parameter) {
     global $config,$desktopua,$ch;
     $json = json_decode(request('https://www.lanzouf.com/filemoreajax.php',"post",$parameter,$desktopua,"data",$ch),true); // 获取文件列表 zt状态码： 1成功 2没有文件 3密码错误 4参数无效或过期
-    curl_close($ch);
     if(is_array($json["text"])) {
         foreach ($json["text"] as $v) {
             if($v["id"] != "-1") {
@@ -462,13 +459,12 @@ function request($url, $method = 'GET', $postdata = array(), $ua = null,$respons
     
     // 执行请求并获取响应结果
     $data = array('data' => curl_exec($curl),'info' => curl_getinfo($curl));
-    if(isset($internalCurl)) curl_close($curl);  // 关闭 cURL 句柄
     return $data[$responsetype] ?? $data; // 返回
 }
 
-//获取链接
-function geturl($data,$info,$error,$pw) {
-    global $desktopua,$ch;
+// 获取链接
+function geturl($data,$info,$error,$pw,$ua) {
+    global $ch;
     $data = preg_replace("/\/\/.*|\/\*[\s\S]*\*\/|function woio[\s\S]*?}/","",$data);
     $fileid = preg_match("/(?<=file=)\d+/", $data,$fileid) ? (int)$fileid[0] : null;
     $info = array("fid" => $fileid) + $info;
@@ -479,35 +475,16 @@ function geturl($data,$info,$error,$pw) {
         exit(response(401,"请输入密码",$info)); 
     }
     
-    // 获取 sign
-    if(preg_match("/(?<='sign':')\w+?(?=')/",$data,$a)) {
-        $sign = $a[0];
-    } else if(preg_match("/(?<='sign':)[\w]+?(?=,)/",$data,$b) && preg_match_all("/(?<=".$b[0]." = ').*(?=')/",$data,$a)) {
-        $lengths = array_map("strlen", $a[0]);
-        $minIndex = array_search(min($lengths),$lengths);
-        $sign = $a[0][$minIndex];
-    } else if(preg_match_all("/(?<=').+?_c/", $data, $a)) {
-        $lengths = array_map('strlen', $a[0]);
-        $minIndex = array_search(min($lengths),$lengths);
-        $sign = $a[0][$minIndex];
-    } else if(preg_match_all("/(?<=')[\w]{50,}+(?=')/",$data,$a)) {
-        $lengths = array_map("strlen", $a[0]);
-        $maxIndex = array_search(max($lengths),$lengths);
-        $sign = $a[0][$maxIndex];
-    } else {
-        exit(response(501,$error,null)); //错误
-    }
-    
     // 获取链接
+    $sign = preg_match("/(?<=')[\w]{50,}+(?=')/",$data,$sign) ? $sign[0] : "";
     $websign = preg_match("/(?<=')[0-9]{1}(?=')/", $data, $websign) ? $websign[0] : "";
     $websignkey = preg_match("/(?<=')(?!=|post|sign|json)[a-zA-Z0-9]{4}(?=')/", $data, $websignkey) ? $websignkey[0] : "";
-    $json = json_decode(request("https://www.lanzouf.com/ajaxm.php?file=$fileid","post",array('action' => 'downprocess', 'sign' => $sign, 'p' => $pw, 'websign' => $websign, 'websignkey' => $websignkey),$desktopua,"data",$ch),true); // POST请求API获取下载地址
+    $json = json_decode(request("https://www.lanzouf.com/ajaxfile.php?file=$fileid","post",array('action' => 'downprocess', 'sign' => $sign, 'p' => $pw, 'websign' => $websign, 'websignkey' => $websignkey),$ua,"data",$ch),true); // POST请求API获取下载地址
     if($json["zt"] == 1) {
         if(!empty($json["inf"])) { 
 	        $info["name"] = $json["inf"]; //文件名
 	    }
 	    $info["url"] = $json["dom"].'/file/'.$json["url"];
-	    curl_close($ch);
 	    e($info);
     } else {
         $info["url"] = null;
