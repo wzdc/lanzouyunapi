@@ -2,8 +2,8 @@
 /*
  * @package lanzouyunapi
  * @author wzdc
- * @version 1.3.64
- * @Date 2026-08-30
+ * @version 1.3.65
+ * @Date 2026-10-03
  * @link https://github.com/wzdc/lanzouyunapi
  */
 
@@ -81,7 +81,9 @@ function mobile() {
         $url = preg_match("/(?<=')\?.+(?=')/",$js,$url) ? $url[0] : null;
     }
     
-    $error = preg_match("/<\/div><\/div>(.+)<\/div>/",$data,$error) ? strip_tags($error[1]) : "获取失败";
+    preg_match("/<\/div><\/div>(.+)<\/div>/",$data,$error);
+    $error = strip_tags($error[1]);
+    if(!$error) $error = "获取失败";
     if(!$js) exit(response(501,$error,null));
     $fileinfo = preg_match('/<meta\s+name=["\']description["\']\s+content=["\'](.*?)["\']/',$data,$fileinfo) ? $fileinfo[1] : "";
     
@@ -112,11 +114,10 @@ function mobile() {
                   || $data2 && preg_match('/<div class="mdo">([\s\S]+?)<\/div>/', $data2, $filedesc) && !strpos($filedesc[1], "<span>")
                   ? htmlspecialchars_decode(trim(strip_tags(str_replace("<br /> ","\n",$filedesc[1])))) : ""; // 文件描述
     
-    //$info["uid"] = $data2 && preg_match("/uid':'(\d+)'/",$data2,$uid) ? $uid[1] : null; // 分享者ID
     $info["icon"] = preg_match('/https?:\/\/.+\/image\/ico\/.+?(?=\))/',$data,$fileicon) ? $fileicon[0] : null; // 文件图标 默认图标：https://assets.woozooo.com/assets/images/type/(ext)_max.gif
     $info["avatar"] = preg_match('/https?:\/\/.+\/image\/userimg\/.+?(?=\))/',$data,$fileavatar) ? $fileavatar[0] : null; // 分享者头像
     
-    if(preg_match("/(?<=')https?:\/\/.+(?=')/",$datar,$dom)) { // 无密码
+    if(preg_match("/(?<=')https?:\/\/.+(?=')/",$datar,$dom) && $url) { // 无密码
         $info["url"] = $dom[0].$url;
         e($info); // 获取文件直链
     } else if(preg_match("/appitem\s*=\s*'(.+)';/",$js,$url)) { // ipa文件
@@ -133,7 +134,9 @@ function pc() {
     $data = preg_replace('/<!--.*?-->/s', '', request("https://www.lanzouf.com/$id","GET",null,$desktopua,"data",$ch));
     if(!$data) exit(response(500,"获取失败",null));
     $js = preg_match_all('/<script\b[^>]*>(.*?)<\/script>/is', $data, $js) ? trim(implode("\n", $js[1])) : "";
-    $error = preg_match("/<\/div><\/div>(.+)<\/div>/",$data,$error) ? strip_tags($error[1]) : "获取失败";
+    preg_match("/<\/div><\/div>(.+)<\/div>/",$data,$error);
+    $error = strip_tags($error[1]);
+    if(!$error) $error = "获取失败";
     if(strpos($js,"/filemoreajax.php")) exit(folder($data,$js)); // 是否为文件夹
     if(preg_match('/<iframe\b[^>]* src="(.+?)"/',$data,$src)) { // 无密码
         $data2 = request("https://www.lanzouf.com".$src[1],"GET",null,$desktopua,"data",$ch);
@@ -304,26 +307,53 @@ function response($code,$msg,$data) {
 }
 
 //XML
-function arrayToXml($arr,$dom=0,$item=0){
-    if(!$dom){
-        $dom = new DOMDocument("1.0"); 
-    } 
-    if(!$item){ 
-        $item = $dom->createElement("root"); 
-        $dom->appendChild($item); 
-    } 
-    foreach ($arr as $key=>$val){ 
-        $itemx = $dom->createElement(is_string($key)?$key:"item"); 
-        $item->appendChild($itemx); 
-        if (!is_array($val)){ 
-            if(is_bool($val)) $val = $val ? 1 : 0;
-            $text = $dom->createTextNode((string)$val); 
-            $itemx->appendChild($text); 
-        } else { 
-            arrayToXml($val,$dom,$itemx); 
-        } 
-    } 
-    return $dom->saveXML(); 
+function arrayToXml($arr, $dom = null, $parentNode = null)
+{
+    // 初始化
+    if (!$dom) {
+        $dom = new DOMDocument("1.0");
+        $dom->formatOutput = false; // 关闭格式化输出
+    }
+    if (!$parentNode) {
+        $parentNode = $dom->createElement("root"); 
+        $dom->appendChild($parentNode); 
+    }
+
+    // 获取数据类型
+    $mapType = function($value){
+        $t = gettype($value);
+        $alias = ['integer' => 'int', 'double' => 'float', 'boolean' => 'bool'];
+        return $alias[$t] ?? $t;
+    };
+
+    // 递归处理节点
+    $createNode = function($name, $value, $pNode) use ($dom, $mapType, &$createNode) {
+        $isList = is_array($value) && (array_keys($value) === range(0, count($value)-1)); // 判断是否为列表
+        $items = $isList ? $value : [$value]; // 如果不是数组则转换为数组
+
+        foreach ($items as $item) {
+            $node = $dom->createElement((string)$name); // 创建子元素
+            $attr = $dom->createAttribute('type'); // 设置 type 属性
+            $attr->value = $mapType($item); // 给 type 属性赋值
+            $node->appendChild($attr); // 将属性添加到子元素
+            $pNode->appendChild($node); // 将子元素添加到父节点
+
+            if (is_array($item)) {
+                foreach ($item as $subKey => $subVal) {
+                    $createNode($subKey, $subVal, $node); // 处理数组
+                }
+            } else {
+                if (is_bool($item)) $item = $item ? 1 : 0; // 处理布尔值
+                $node->appendChild($dom->createTextNode((string)$item)); // 写入文本
+            }
+        }
+    };
+
+    foreach ($arr as $key => $val) {
+        $createNode($key, $val, $parentNode);
+    }
+
+    return $dom->saveXML();
 }
 
 // 获取直链
@@ -393,7 +423,7 @@ function e($info) {
 //获取文件夹文件
 function f($info,$parameter) {
     global $config,$desktopua,$ch;
-    $json = json_decode(request('https://www.lanzouf.com/filemoreajax.php',"post",$parameter,$desktopua,"data",$ch),true); // 获取文件列表 zt状态码： 1成功 2没有文件 3密码错误 4参数无效或过期
+    $json = json_decode(request('https://www.lanzouf.com/filemoreajax.php',"post",$parameter,$desktopua,"data",$ch),true); // 获取文件列表 zt状态码： 1成功 2没有文件 3密码错误 4参数无效或过期 6文件被封禁
     if(is_array($json["text"])) {
         foreach ($json["text"] as $v) {
             if($v["id"] != "-1") {
@@ -433,11 +463,8 @@ function request($url, $method = 'GET', $postdata = array(), $ua = null,$respons
     $headers[]  =  "Connection: keep-alive";
     $headers[]  =  "X-Forwarded-For: 0.0.0.0";
     
-    if(!$curl) {
-        $curl = curl_init();
-        $internalCurl = true;
-    }
-    
+    if(!$curl) $curl = curl_init();
+
     curl_setopt($curl, CURLOPT_URL, $url); //设置请求 URL
     curl_setopt($curl, CURLOPT_ENCODING, 'gzip'); //自动解压缩
     // 设置请求方式
@@ -465,21 +492,35 @@ function request($url, $method = 'GET', $postdata = array(), $ua = null,$respons
 // 获取链接
 function geturl($data,$info,$error,$pw,$ua) {
     global $ch;
-    $data = preg_replace("/\/\/.*|\/\*[\s\S]*\*\/|function woio[\s\S]*?}/","",$data);
+    
+    // 去除JavaScript注释
+    $pattern = '/("(?:[^"\\\\]|\\\\.)*"|\'(?:[^\'\\\\]|\\\\.)*\'|`(?:[^`\\\\]|\\\\.)*`)|\/\*[\s\S]*?\*\/|\/\/.*/';
+    $data = preg_replace_callback($pattern, function ($matches) {
+        if (!empty($matches[1])) {
+            return $matches[1];
+        }
+        return '';
+    }, $data);
+    
+    // 获取文件ID
     $fileid = preg_match("/(?<=file=)\d+/", $data,$fileid) ? (int)$fileid[0] : null;
     $info = array("fid" => $fileid) + $info;
-    
+
     // 密码文件检测
     if(strpos($data,"document.getElementById('pwd').value;") && !$pw) {
         $info["url"] = null;
         exit(response(401,"请输入密码",$info)); 
     }
     
+    if(preg_match("/(?<=')[\w]{50,}+(?=')/",$data,$sign)) {
+        $sign = $sign[0];
+    } else {
+        exit(response(501,$error,null));
+    }
+    
     // 获取链接
-    $sign = preg_match("/(?<=')[\w]{50,}+(?=')/",$data,$sign) ? $sign[0] : "";
-    $websign = preg_match("/(?<=')[0-9]{1}(?=')/", $data, $websign) ? $websign[0] : "";
     $websignkey = preg_match("/(?<=')(?!=|post|sign|json)[a-zA-Z0-9]{4}(?=')/", $data, $websignkey) ? $websignkey[0] : "";
-    $json = json_decode(request("https://www.lanzouf.com/ajaxfile.php?file=$fileid","post",array('action' => 'downprocess', 'sign' => $sign, 'p' => $pw, 'websign' => $websign, 'websignkey' => $websignkey),$ua,"data",$ch),true); // POST请求API获取下载地址
+    $json = json_decode(request("https://apifile.woozooo.com/ajaxfile.php?file=$fileid","post",array('action' => 'downprocess', 'sign' => $sign, 'p' => $pw, 'websign' => 2, 'websignkey' => $websignkey, 'kd' => 1, 'ves' => 1),$ua,"data",$ch),true); // POST请求API获取下载地址
     if($json["zt"] == 1) {
         if(!empty($json["inf"])) { 
 	        $info["name"] = $json["inf"]; //文件名
@@ -513,7 +554,7 @@ function Text_conversion_time($str) {
     }
 }
 
-// acw_sc_v2生成（https://github.com/hanximeng/LanzouAPI/blob/master/index.php#L242）
+// acw_sc_v2生成 (https://github.com/hanximeng/LanzouAPI/blob/d50cae68e3c01e764774b674a7af0a94e5c9c28d/index.php#L241)
 function acw_sc_v2_simple($arg1) {
     $posList = [15,35,29,24,33,16,1,38,10,9,19,31,40,27,22,23,25,13,6,11,39,18,20,8,14,21,32,26,2,30,7,4,17,5,3,28,34,37,12,36];
     $mask = '3000176000856006061501533003690027800375';
